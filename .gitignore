@@ -1,0 +1,27 @@
+# Vivado/generated outputs
+build/
+*.jou
+*.log
+*.str
+*.wdb
+*.bit
+*.ltx
+*.rpt
+*.dcp
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.gen/
+*.srcs/
+*.xpr
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Large vendor/reference packages kept locally only
+docs/FACE-ZUSSD资料包V1.0.zip
+docs/reference_face_zussd/*.pdf
+docs/reference_face_zussd/*.xsa

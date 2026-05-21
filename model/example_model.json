@@ -1,0 +1,23 @@
+{
+  "name": "TinySPAN-RTL-baseline",
+  "input_format": "RGB888 AXI4-Stream",
+  "scales": [2, 4],
+  "quantization": {
+    "activation": "uint8",
+    "weight": "int8",
+    "accumulator": "int32"
+  },
+  "layers": [
+    {
+      "name": "residual_enhance",
+      "type": "stream_residual_filter",
+      "kernel": "cur + 0.5 * (cur - avg(up,left))",
+      "clip": [0, 255]
+    },
+    {
+      "name": "upsample",
+      "type": "pixel_repeat",
+      "scale": 2
+    }
+  ]
+}
