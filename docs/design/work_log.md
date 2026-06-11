@@ -569,3 +569,23 @@
    - WNS：`12.909 ns`，WHS：`0.017 ns`，Vivado 报告显示约束满足。
    - 资源：CLB LUTs `5681`，CLB Registers `3673`，Block RAM Tile `178.5`，DSP `1`。
 3. 当前状态：修复后的 PixelShuffle 通道顺序已在 X2 4x4 和 X4 8x8 板测中闭环；后续每次测试会自动生成 Input / Reference / Board / Diff 对比图。
+### 2026-06-11 PixelShuffle-fixed X4 4x4 board validation addendum
+
+1. Regenerated the fixed X4 `IMG_W=4` JTAG full SPAN bitstream after correcting PixelShuffle channel order.
+   - bitstream: `vivado/bitstreams/jfs_full_span_x4_4x4.bit`
+   - timing report: `vivado/reports/jtag_full_span_x4_4x4_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x4_4x4_utilization_impl.rpt`
+   - WNS: `14.733 ns`, WHS: `0.014 ns`; Vivado reports all user timing constraints met.
+   - resources: CLB LUTs `5722`, CLB Registers `3686`, Block RAM Tile `184.5`, DSPs `1`.
+2. Ran real PNG JTAG board validation with `external/SPAN/test_scripts/data/baboon.png` resized to `4x4`.
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_jtag_full_span_smoke.ps1 -Scale 4 -ImgW 4 -InputPng external\SPAN\test_scripts\data\baboon.png -OutputPng board_runs\full_span_jtag_smoke\baboon_x4_4x4_pixelshuffle_fixed_out.png`
+   - input counter: `16`
+   - output counter: `256`
+   - error flags: `0x00000000`
+   - output raw: `board_runs/full_span_jtag_smoke/output_x4_4x4.rgb` (`768 bytes`)
+   - output png: `board_runs/full_span_jtag_smoke/baboon_x4_4x4_pixelshuffle_fixed_out.png`
+3. Fixed-point reference comparison passed byte-for-byte.
+   - result: `PASS compare_jtag_full_span_output_x4_4x4: 768 bytes match`
+   - comparison preview: `board_runs/full_span_jtag_smoke/compare_x4_4x4/validation_preview_x4_4x4.png`
+
+Conclusion: after the PixelShuffle color-channel fix, X4 `4x4 -> 16x16` board output now matches the fixed-point reference byte-for-byte and produces the required Input / Reference / Board / Diff comparison image.
