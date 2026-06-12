@@ -75,6 +75,8 @@ Use a two-step FPGA path:
 
 Candidate A is the first practical hardware target because it leaves room for line buffers, feature RAM banking, AXI/video shell logic, and timing margin. Candidate B can follow after training/distillation shows whether C16/B3 quality is too low.
 
+The first distillation/training path for Candidate A is recorded in `docs/design/tinyspan_distillation_realtime_plan_2026_06_12.md`.
+
 ## RTL implications
 
 The next RTL should not extend the current single-MAC frame engine directly. It should introduce:

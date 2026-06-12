@@ -1,0 +1,21 @@
+{
+  "train_hr": "external\\SPAN\\test_scripts\\data",
+  "scale": 4,
+  "channels": 16,
+  "num_blocks": 3,
+  "patch_size": 128,
+  "batch_size": 1,
+  "epochs": 1,
+  "max_steps": 10,
+  "lr": 0.0002,
+  "num_workers": 0,
+  "train_max_images": null,
+  "teacher_manifest": null,
+  "teacher_checkpoint": null,
+  "distill_weight": 1.0,
+  "hr_weight": 0.2,
+  "edge_weight": 0.02,
+  "amp": true,
+  "output": "runs\\tinyspan_distill\\smoke_x4_c16_b3_baboon",
+  "seed": 42
+}

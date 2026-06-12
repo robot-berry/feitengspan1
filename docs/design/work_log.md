@@ -915,3 +915,30 @@ Conclusion: the CUDA software video path now exceeds the X4 720p30 realtime targ
    - C32/B3: `1279` MAC lanes required; `2048` candidate lanes gives about `48.072 fps`.
 
 Conclusion: the full official SPAN model should remain the quality/correctness oracle, not the first realtime FPGA target. The practical next hardware target is a distilled/lightweight X4 model, starting with C16/B3 at `512` MAC lanes or C24/B3 at `1024` MAC lanes for `320x180 -> 1280x720 @30`.
+
+### 2026-06-12 TinySPAN realtime distillation path
+
+1. Updated `train/span_model.py` so TinySPAN supports fewer than 6 SPAB blocks.
+   - 6-block behavior remains compatible with the previous model.
+   - Smaller students use the first block output, deepest available block output, and fused tail in the concat path.
+2. Added official-to-lightweight distillation:
+   - script: `train/distill_tinyspan_from_official.py`
+   - config: `configs/distill_tinyspan_x4_c16_b3.json`
+   - note: `docs/design/tinyspan_distillation_realtime_plan_2026_06_12.md`
+3. Ran a smoke distillation test for the first FPGA candidate, X4 C16/B3.
+   - command: `python train\distill_tinyspan_from_official.py --scale 4 --channels 16 --num-blocks 3 --patch-size 128 --batch-size 1 --epochs 1 --max-steps 10 --train-hr external\SPAN\test_scripts\data --output runs\tinyspan_distill\smoke_x4_c16_b3_baboon --amp`
+   - dataset: official `baboon.png` smoke image
+   - executed steps: `1`
+   - student parameters: `125792`
+   - step loss: `0.03869177`
+   - distill loss: `0.02133024`
+   - teacher PSNR vs HR crop: `20.113368 dB`
+   - student PSNR vs HR crop: `19.607937 dB`
+   - preview: `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/distill_preview.png`
+   - checkpoint: `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/student_last.pt`
+4. Verified RTL export for the C16/B3 student checkpoint.
+   - command: `python train\export_tinyspan_to_rtl.py --checkpoint runs\tinyspan_distill\smoke_x4_c16_b3_baboon\student_last.pt --scale 4 --channels 16 --num-blocks 3 --output-dir runs\tinyspan_distill\smoke_x4_c16_b3_baboon\rtl_export`
+   - manifest: `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/rtl_export/tinyspan_manifest.json`
+   - config header: `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/rtl_export/tinyspan_model_config.vh`
+
+Conclusion: the project now has a concrete training path for the first practical FPGA realtime candidate: official SPAN X4 teacher -> TinySPAN X4 C16/B3 student -> INT8 RTL export. The smoke run proves the flow; the next substantial task is full REDS/video-frame distillation and quality validation against the official SPAN GPU reference.

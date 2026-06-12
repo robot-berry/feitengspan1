@@ -1,0 +1,7 @@
+{
+  "smoke_command": "python train/distill_tinyspan_from_official.py --scale 4 --channels 16 --num-blocks 3 --patch-size 128 --batch-size 1 --epochs 1 --max-steps 10 --train-hr external/SPAN/test_scripts/data --output runs/tinyspan_distill/smoke_x4_c16_b3_baboon --amp",
+  "full_command": "python train/distill_tinyspan_from_official.py --scale 4 --channels 16 --num-blocks 3 --patch-size 192 --batch-size 16 --epochs 100 --train-hr G:/REDS/train_sharp --train-max-images 24000 --output runs/tinyspan_distill/x4_c16_b3_reds --amp",
+  "teacher": "official SPAN X4 from rtl/generated/official_span_x4/official_span_manifest.json",
+  "student": "TinySPAN X4, channels=16, num_blocks=3",
+  "hardware_target": "320x180 -> 1280x720 @30fps, 150MHz, 512 MAC lanes"
+}

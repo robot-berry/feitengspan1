@@ -1,0 +1,2 @@
+epoch,step,loss,distill_loss,hr_loss,edge_loss,teacher_psnr,student_psnr,seconds,steps_per_second
+1,1,0.03869177,0.02133024,0.07589957,0.10908094,20.113368,19.607937,1.691,0.5913
