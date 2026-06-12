@@ -888,3 +888,30 @@ Conclusion: the CUDA software path is now effectively at the X4 720p30 video-dem
    - comparison image: `runs/span_video_stream/baboon_x4_320x180_180f_fp16_async_writer/baboon_stream_comparison_x4.png`
 
 Conclusion: the CUDA software video path now exceeds the X4 720p30 realtime target end-to-end, including MP4 output. This is a software reference and demo path; the FPGA realtime datapath remains a separate implementation task.
+
+### 2026-06-12 FPGA realtime hardware sizing
+
+1. Added a parallel hardware sizing estimator:
+   - script: `tools/estimate_span_parallel_hardware.py`
+   - note: `docs/design/span_realtime_hardware_sizing_2026_06_12.md`
+   - summary CSV: `runs/span_hardware_estimates/summary_2026_06_12.csv`
+2. Estimated full official SPAN X4 `320x180 -> 1280x720 @30` at `150 MHz`.
+   - MACs per LR input pixel: `425232`
+   - MACs per frame: `24493363200`
+   - required compute: `734.801 GMAC/s`
+   - required MAC lanes: `4899`
+   - rough DSP estimate: `4899` DSPs at `1 MAC/DSP`, or `2450` DSPs at `2 MAC/DSP`
+3. Estimated full official SPAN X4 `320x180 -> 1280x720 @60` at `150 MHz`.
+   - required compute: `1469.602 GMAC/s`
+   - required MAC lanes: `9798`
+4. Estimated full official SPAN X2 `640x360 -> 1280x720 @30` at `150 MHz`.
+   - required compute: `2831.708 GMAC/s`
+   - required MAC lanes: `18879`
+   - conclusion: X2 720p is not easier than X4 320x180 input because it processes 4x more LR pixels.
+5. Estimated lightweight X4 `320x180 -> 1280x720 @30` candidates at `150 MHz`.
+   - C16/B3: `362` MAC lanes required; `512` candidate lanes gives about `42.452 fps`.
+   - C16/B6: `601` MAC lanes required; `768` candidate lanes gives about `38.355 fps`.
+   - C24/B3: `751` MAC lanes required; `1024` candidate lanes gives about `40.925 fps`.
+   - C32/B3: `1279` MAC lanes required; `2048` candidate lanes gives about `48.072 fps`.
+
+Conclusion: the full official SPAN model should remain the quality/correctness oracle, not the first realtime FPGA target. The practical next hardware target is a distilled/lightweight X4 model, starting with C16/B3 at `512` MAC lanes or C24/B3 at `1024` MAC lanes for `320x180 -> 1280x720 @30`.

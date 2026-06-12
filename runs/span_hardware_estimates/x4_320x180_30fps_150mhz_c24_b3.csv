@@ -1,0 +1,2 @@
+scale,input_width,input_height,output_width,output_height,fps_target,clock_mhz,feature_channels,blocks,input_pixels_per_frame,macs_per_input_pixel,macs_per_frame,required_gmac_s,macs_per_cycle_required,mac_lanes_for_target,dsp_estimate_int8_1mac_per_dsp,dsp_estimate_int8_2mac_per_dsp,fps_at_candidate_lanes,candidate_lanes,cycles_per_frame_at_candidate,utilization_of_candidate
+4,320,180,1280,720,30.0,150.0,24,3,57600,65160,3753216000,112.59648,750.6432,751,751,376,40.92490280335584,1024,3665250,0.73305

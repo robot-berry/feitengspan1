@@ -64,6 +64,14 @@ python tools\estimate_span_video_perf.py --scale 4 --width 320 --height 180 --fp
 
 The `speedup_needed` field is the approximate throughput improvement required over the current sequential engine at the selected clock.
 
+For parallel MAC-lane sizing, use:
+
+```powershell
+python tools\estimate_span_parallel_hardware.py --scale 4 --width 320 --height 180 --fps 30 --clock-mhz 150 --channels 48 --blocks 6
+```
+
+Detailed sizing is recorded in `docs/design/span_realtime_hardware_sizing_2026_06_12.md`.
+
 ## Optimization direction
 
 The next realtime path should:
@@ -72,4 +80,4 @@ The next realtime path should:
 2. Create a video-oriented streaming shell with line buffers and frame-rate accounting.
 3. Replace the single-MAC sequential convolution engine with a parameterized multi-lane MAC datapath.
 4. Pipeline every BRAM read, multiply, adder-tree, activation, and writeback stage.
-5. Start with a smaller realtime target such as X2 320x180 -> 640x360 or X2 640x360 -> 1280x720 at 30 fps before attempting X4 1080p-class output.
+5. Start with X4 `320x180 -> 1280x720 @30` using a lightweight model such as C16/B3 or C24/B3 before attempting full official SPAN or 1080p-class output.
