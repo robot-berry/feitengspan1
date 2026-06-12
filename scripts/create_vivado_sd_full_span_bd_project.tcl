@@ -2,6 +2,10 @@ set origin_dir [file normalize [file join [file dirname [info script]] ..]]
 set vivado_dir [file join $origin_dir vivado]
 set proj_dir   [file join $vivado_dir sd_full_span_sr_bd]
 set bd_name    sd_full_span_sr_system
+set pl_freq_mhz 25
+if {[info exists ::env(SD_FULL_SPAN_PL_FREQ_MHZ)]} {
+  set pl_freq_mhz $::env(SD_FULL_SPAN_PL_FREQ_MHZ)
+}
 
 file mkdir $vivado_dir
 file mkdir [file join $vivado_dir logs]
@@ -29,7 +33,7 @@ current_bd_design $bd_name
 set ps [create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:* zynq_ultra_ps_e_0]
 set_property -dict [list \
   CONFIG.PSU__FPGA_PL0_ENABLE {1} \
-  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {25} \
+  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ $pl_freq_mhz \
   CONFIG.PSU__CRL_APB__PL0_REF_CTRL__SRCSEL {IOPLL} \
   CONFIG.PSU__USE__FABRIC__RST {1} \
   CONFIG.PSU__USE__M_AXI_GP0 {1} \
@@ -111,6 +115,9 @@ puts "  $bd_name"
 puts ""
 puts "PS address for sr_sd_axi_lite_accel:"
 puts "  0xA0000000"
+puts ""
+puts "PL0 clock frequency MHz:"
+puts "  $pl_freq_mhz"
 puts ""
 puts "Next steps in Vivado:"
 puts "  1. Open the project."

@@ -4,11 +4,15 @@ set proj_dir   [file join $vivado_dir jfs]
 set bd_name    jfs
 set img_w      1
 set scale      2
+set pl_freq_mhz 25
 if {[info exists ::env(JTAG_FULL_SPAN_IMG_W)]} {
   set img_w $::env(JTAG_FULL_SPAN_IMG_W)
 }
 if {[info exists ::env(JTAG_FULL_SPAN_SCALE)]} {
   set scale $::env(JTAG_FULL_SPAN_SCALE)
+}
+if {[info exists ::env(JTAG_FULL_SPAN_PL_FREQ_MHZ)]} {
+  set pl_freq_mhz $::env(JTAG_FULL_SPAN_PL_FREQ_MHZ)
 }
 
 file mkdir $vivado_dir
@@ -38,7 +42,7 @@ current_bd_design $bd_name
 set ps [create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:* ps]
 set_property -dict [list \
   CONFIG.PSU__FPGA_PL0_ENABLE {1} \
-  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {25} \
+  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ $pl_freq_mhz \
   CONFIG.PSU__CRL_APB__PL0_REF_CTRL__SRCSEL {IOPLL} \
   CONFIG.PSU__USE__FABRIC__RST {1} \
   CONFIG.PSU__USE__M_AXI_GP0 {0} \
@@ -114,3 +118,5 @@ puts "Full SPAN smoke image width:"
 puts "  $img_w"
 puts "Full SPAN scale:"
 puts "  X$scale"
+puts "PL0 clock frequency MHz:"
+puts "  $pl_freq_mhz"
