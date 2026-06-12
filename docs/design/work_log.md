@@ -774,3 +774,29 @@ Conclusion: the existing byte-exact SPAN validation engine can pass `40 MHz`, an
    - DSPs: `4`
 
 Conclusion: X4 `32x32 -> 128x128` still closes timing at `50 MHz`, with about `2.825 ns` setup margin remaining. This confirms there is modest frequency headroom for the current validation core, but the realtime-video gap is still architectural rather than clock-only.
+
+### 2026-06-12 CUDA SPAN video prototype - PASSED
+
+1. Confirmed the local GPU software path is usable for realtime prototyping.
+   - GPU: `NVIDIA GeForce RTX 3060 Laptop GPU`
+   - PyTorch CUDA: available
+   - preferred prototype dtype: FP16 via `--half`
+2. Added a reusable GPU benchmark and preview tool:
+   - script: `tools/run_span_gpu_realtime.py`
+   - note: `docs/design/video_gpu_realtime_prototype_2026_06_12.md`
+   - supported inputs: image, image directory, video file
+   - generated outputs per run: input PNG, bicubic PNG, SPAN GPU PNG, optional MP4, `metrics.json`, and a side-by-side comparison PNG
+3. Ran the official SPAN X4 checkpoint on the current official `baboon.png` image.
+   - command: `python tools\run_span_gpu_realtime.py --scale 4 --input external\SPAN\test_scripts\data\baboon.png --width 160 --height 160 --out-dir runs\span_gpu_realtime\baboon_x4_160_fp16 --half --warmup 5 --repeat 30 --tile 220`
+   - LR input: `160x160`
+   - SR output: `640x640`
+   - measured throughput: `52.059 fps`
+   - latency: `19.209 ms/frame`
+   - comparison image: `runs/span_gpu_realtime/baboon_x4_160_fp16/baboon_comparison_x4.png`
+4. Ran a video-input smoke test through the same tool.
+   - input video: `runs\span_gpu_realtime\baboon_x4_160_fp16\baboon_span_gpu_x4.mp4`
+   - measured throughput: `55.037 fps`
+   - latency: `18.169 ms/frame`
+   - comparison image: `runs/span_gpu_realtime/baboon_video_smoke_x4_160_fp16/baboon_span_gpu_x4_comparison_x4.png`
+
+Conclusion: the CUDA prototype can run the current official SPAN X4 model at about realtime for `160x160 -> 640x640` frames on this GPU. This becomes the software quality/FPS reference while the FPGA implementation is redesigned from the current byte-exact sequential validation core into a parallel video datapath.

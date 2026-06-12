@@ -1,0 +1,17 @@
+{
+  "input": "runs\\span_gpu_realtime\\baboon_x4_160_fp16\\baboon_span_gpu_x4.mp4",
+  "manifest": "G:\\UESTC\\feitengspan1\\rtl\\generated\\official_span_x4\\official_span_manifest.json",
+  "checkpoint": "G:\\UESTC\\feitengspan1\\runs\\official_span\\official_SPAN_REDS_x4_f48\\models\\net_g_latest.pth",
+  "scale": 4,
+  "frames": 1,
+  "input_width": 160,
+  "input_height": 160,
+  "output_width": 640,
+  "output_height": 640,
+  "source_video_fps": 52.06,
+  "device": "NVIDIA GeForce RTX 3060 Laptop GPU",
+  "dtype": "fp16",
+  "fps": 55.03743921939079,
+  "latency_ms": 18.169449999550125,
+  "span_vs_bicubic_mse_first_frame": 69.48809051513672
+}
