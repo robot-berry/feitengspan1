@@ -754,3 +754,23 @@ Conclusion: X2 `32x32 -> 64x64` board output matches the fixed-point reference b
    - WNS: `6.289 ns`, TNS: `0`, WHS: `0.015 ns`; Vivado reports all user timing constraints met.
 
 Conclusion: the existing byte-exact SPAN validation engine can pass `40 MHz`, and `50 MHz` is a reasonable next timing experiment. However, realtime video cannot be achieved by frequency ramp alone. The next architecture work should keep official SPAN as the correctness/quality reference and create a video-oriented lightweight/parallel datapath with many MAC lanes, registered BRAM boundaries, and a streaming video shell.
+
+### 2026-06-12 X4 32x32 50MHz clock ramp - PASSED
+
+1. Ran the next clock-ramp implementation point for X4 `IMG_W=32`.
+   - command: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run_vivado_jtag_full_span_freq_sweep.ps1 -Scale 4 -ImgW 32 -FrequenciesMhz 50 -StopOnFailure -OutCsv vivado\reports\jtag_full_span_x4_32x32_f50m_freq_sweep.csv`
+   - result CSV: `vivado/reports/jtag_full_span_x4_32x32_f50m_freq_sweep.csv`
+   - timing report: `vivado/reports/jtag_full_span_x4_32x32_f50m_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x4_32x32_f50m_utilization_impl.rpt`
+   - local bitstream: `vivado/bitstreams/jfs_full_span_x4_32x32_f50m.bit`
+2. Vivado timing passed at reported `clk_pl_0 = 50 MHz`.
+   - WNS: `2.825 ns`
+   - TNS: `0`
+   - WHS: `0.020 ns`
+   - clock period: `20.000 ns`
+3. Resource use remains essentially unchanged from the 25/40 MHz builds.
+   - CLB LUTs: `7749`
+   - CLB Registers: `4015`
+   - DSPs: `4`
+
+Conclusion: X4 `32x32 -> 128x128` still closes timing at `50 MHz`, with about `2.825 ns` setup margin remaining. This confirms there is modest frequency headroom for the current validation core, but the realtime-video gap is still architectural rather than clock-only.

@@ -1,0 +1,2 @@
+﻿"Scale","ImgW","RequestedMhz","ReportedMhz","Status","WnsNs","TnsNs","WhsNs","TimingReport","UtilizationReport","Bitstream","Message"
+"4","32","50","50","PASS","2.825","0","0.02","G:\UESTC\feitengspan1\vivado\reports\jtag_full_span_x4_32x32_f50m_timing_impl.rpt","G:\UESTC\feitengspan1\vivado\reports\jtag_full_span_x4_32x32_f50m_utilization_impl.rpt","G:\UESTC\feitengspan1\vivado\bitstreams\jfs_full_span_x4_32x32_f50m.bit",""
