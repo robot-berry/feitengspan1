@@ -105,3 +105,15 @@ From `docs/design/span_realtime_hardware_sizing_2026_06_12.md`:
 - estimated throughput at `512` lanes: `42.452 fps`
 
 This makes C16/B3 the first practical FPGA realtime candidate.
+
+## Student stream benchmark
+
+The smoke C16/B3 checkpoint was also benchmarked in the end-to-end stream tool. See `docs/design/tinyspan_student_video_benchmark_2026_06_12.md`.
+
+Key result:
+
+- X4 `320x180 -> 1280x720`, 180 frames, FP16, async writer
+- end-to-end FPS: `90.225`
+- inference: `7.423 ms/frame`
+
+This confirms the lightweight architecture has ample realtime throughput. The remaining work is quality: run full REDS/video-frame distillation and compare against official SPAN teacher outputs.

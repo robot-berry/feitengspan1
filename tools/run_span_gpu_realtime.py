@@ -152,11 +152,12 @@ def make_comparison(
     span: Image.Image,
     metrics: dict,
     tile: int,
+    span_label: str = "SPAN GPU",
 ) -> None:
     panels = [
         (f"Input {lr.width}x{lr.height}", fit_tile(lr, tile)),
         (f"Bicubic {bicubic.width}x{bicubic.height}", fit_tile(bicubic, tile)),
-        (f"SPAN GPU {span.width}x{span.height}", fit_tile(span, tile)),
+        (f"{span_label} {span.width}x{span.height}", fit_tile(span, tile)),
     ]
     label_h = 28
     title_h = 42

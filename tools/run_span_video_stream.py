@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import queue
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -177,14 +178,42 @@ def tensor_to_rgb_u8(tensor: torch.Tensor) -> np.ndarray:
     return out.squeeze(0).permute(1, 2, 0).contiguous().cpu().numpy()
 
 
+def load_tinyspan_model(
+    checkpoint: Path,
+    scale: int,
+    channels: int,
+    num_blocks: int,
+    device: torch.device,
+    half: bool,
+    channels_last: bool,
+) -> torch.nn.Module:
+    train_root = Path(__file__).resolve().parents[1] / "train"
+    sys.path.insert(0, str(train_root))
+    from span_model import build_model
+
+    model = build_model(scale=scale, channels=channels, num_blocks=num_blocks)
+    ckpt = torch.load(checkpoint, map_location="cpu")
+    state = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
+    model.load_state_dict(state, strict=True)
+    model.eval().to(device)
+    if half:
+        model.half()
+    if channels_last:
+        model.to(memory_format=torch.channels_last)
+    return model
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Stream official SPAN over video frames and measure end-to-end FPS.")
+    parser = argparse.ArgumentParser(description="Stream SPAN/TinySPAN over video frames and measure end-to-end FPS.")
     parser.add_argument("--input", type=Path, default=Path("external/SPAN/test_scripts/data/baboon.png"))
     parser.add_argument("--out-dir", type=Path, default=Path("runs/span_video_stream/latest"))
     parser.add_argument("--output", type=Path)
     parser.add_argument("--scale", type=int, choices=(2, 4), default=4)
+    parser.add_argument("--model", choices=("official", "tinyspan"), default="official")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--student-channels", type=int, default=16)
+    parser.add_argument("--student-blocks", type=int, default=3)
     parser.add_argument("--device", default="cuda", choices=("auto", "cuda", "cpu"))
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--channels-last", action="store_true")
@@ -203,10 +232,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     manifest_path = args.manifest or default_manifest(args.scale)
-    manifest = load_manifest(manifest_path)
-    scale = int(manifest["scale"])
+    manifest = load_manifest(manifest_path) if args.model == "official" else None
+    scale = int(manifest["scale"]) if manifest is not None else args.scale
     if scale != args.scale:
-        raise SystemExit(f"manifest scale X{scale} does not match --scale X{args.scale}")
+        raise SystemExit(f"model scale X{scale} does not match --scale X{args.scale}")
 
     if args.device == "auto":
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -218,8 +247,25 @@ def main() -> None:
     half = bool(args.half and device.type == "cuda")
     channels_last = bool(args.channels_last and device.type == "cuda")
     configure_torch(bool(args.tf32 and device.type == "cuda"))
-    checkpoint = resolve_checkpoint(manifest, args.checkpoint)
-    model = load_model(manifest, checkpoint, device, half, channels_last)
+    if args.model == "official":
+        assert manifest is not None
+        checkpoint = resolve_checkpoint(manifest, args.checkpoint)
+        model = load_model(manifest, checkpoint, device, half, channels_last)
+        model_label = "official"
+    else:
+        if args.checkpoint is None:
+            raise SystemExit("--checkpoint is required when --model tinyspan")
+        checkpoint = args.checkpoint
+        model = load_tinyspan_model(
+            checkpoint,
+            args.scale,
+            args.student_channels,
+            args.student_blocks,
+            device,
+            half,
+            channels_last,
+        )
+        model_label = f"tinyspan_c{args.student_channels}_b{args.student_blocks}"
 
     if args.input.suffix.lower() in VIDEO_EXTS:
         frames, source = video_source(args.input, args.frames)
@@ -228,7 +274,7 @@ def main() -> None:
 
     out_dir = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    output_path = args.output or (out_dir / f"{source.name}_span_stream_x{scale}.mp4")
+    output_path = args.output or (out_dir / f"{source.name}_{model_label}_stream_x{scale}.mp4")
 
     writer = None
     writer_is_async = False
@@ -302,10 +348,15 @@ def main() -> None:
     metrics = {
         "input": str(args.input),
         "output": str(output_path),
+        "model": args.model,
+        "model_label": model_label,
+        "checkpoint": str(checkpoint),
         "source_mode": source.mode,
         "source_fps": source.fps,
         "frames": frame_count,
         "scale": scale,
+        "student_channels": args.student_channels if args.model == "tinyspan" else "",
+        "student_blocks": args.student_blocks if args.model == "tinyspan" else "",
         "input_width": args.width,
         "input_height": args.height,
         "output_width": args.width * scale,
@@ -336,8 +387,17 @@ def main() -> None:
     metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
     assert first_lr is not None and first_bicubic is not None and first_sr is not None
-    preview_path = out_dir / f"{source.name}_stream_comparison_x{scale}.png"
-    make_comparison(preview_path, f"SPAN stream X{scale}", first_lr, first_bicubic, first_sr, {"device": metrics["device"], "dtype": metrics["dtype"], "fps": fps, "latency_ms": metrics["end_to_end_latency_ms"]}, args.preview_tile)
+    preview_path = out_dir / f"{source.name}_{model_label}_stream_comparison_x{scale}.png"
+    make_comparison(
+        preview_path,
+        f"{model_label} stream X{scale}",
+        first_lr,
+        first_bicubic,
+        first_sr,
+        {"device": metrics["device"], "dtype": metrics["dtype"], "fps": fps, "latency_ms": metrics["end_to_end_latency_ms"]},
+        args.preview_tile,
+        span_label=model_label,
+    )
 
     print(json.dumps(metrics, indent=2))
     print(f"metrics: {metrics_path}")

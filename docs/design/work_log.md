@@ -942,3 +942,26 @@ Conclusion: the full official SPAN model should remain the quality/correctness o
    - config header: `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/rtl_export/tinyspan_model_config.vh`
 
 Conclusion: the project now has a concrete training path for the first practical FPGA realtime candidate: official SPAN X4 teacher -> TinySPAN X4 C16/B3 student -> INT8 RTL export. The smoke run proves the flow; the next substantial task is full REDS/video-frame distillation and quality validation against the official SPAN GPU reference.
+
+### 2026-06-12 TinySPAN student GPU video benchmark
+
+1. Extended the video stream benchmark to support both official SPAN and lightweight TinySPAN students.
+   - script: `tools/run_span_video_stream.py`
+   - options: `--model official|tinyspan`, `--student-channels`, `--student-blocks`
+   - comparison preview labels now distinguish official SPAN from TinySPAN students.
+2. Ran the smoke TinySPAN X4 C16/B3 checkpoint on the RTX 3060 Laptop GPU.
+   - command: `python tools\run_span_video_stream.py --model tinyspan --checkpoint runs\tinyspan_distill\smoke_x4_c16_b3_baboon\student_last.pt --scale 4 --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 180 --fps 30 --motion --out-dir runs\span_video_stream\tinyspan_c16_b3_smoke_x4_320x180_180f_fp16_async_labeled --half --async-writer --preview-tile 240`
+   - input: `320x180`
+   - output: `1280x720`
+   - frames: `180`
+   - OpenCV readback: `180` frames, `30.0 fps`, `1280x720`
+   - end-to-end throughput: `90.225 fps`
+   - end-to-end latency: `11.083 ms/frame`
+   - inference: `7.423 ms/frame`
+   - metrics: `runs/span_video_stream/tinyspan_c16_b3_smoke_x4_320x180_180f_fp16_async_labeled/metrics.json`
+   - comparison image: `runs/span_video_stream/tinyspan_c16_b3_smoke_x4_320x180_180f_fp16_async_labeled/baboon_tinyspan_c16_b3_stream_comparison_x4.png`
+3. Compared against the official SPAN X4 GPU stream result on the same `320x180 -> 1280x720` target.
+   - official SPAN: `41.218 fps`, `21.125 ms/frame` inference
+   - TinySPAN C16/B3 smoke student: `90.225 fps`, `7.423 ms/frame` inference
+
+Conclusion: GPU execution is already usable for realtime video experiments. The lightweight C16/B3 architecture has ample software speed; its quality is still smoke-level and needs full REDS/video-frame distillation before treating it as the final realtime model.
