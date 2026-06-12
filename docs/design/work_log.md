@@ -680,3 +680,29 @@ Conclusion: X2 `16x16 -> 32x32` board output matches the fixed-point reference b
    - diagnostic preview: `board_runs/full_span_jtag_smoke/compare_x4_32x32_black/validation_preview_x4_32x32.png`
 
 Conclusion: X4 `32x32 -> 128x128` is NOT validated yet. JTAG transfer and counters are complete, but the full SPAN frame engine or its synthesized storage/address path saturates at `IMG_W=32`. Keep X4 `16x16` as the largest passing X4 board result until the 32x32 engine issue is fixed.
+
+### 2026-06-12 X4 32x32 banked RAM board validation - PASSED
+
+1. Fixed the X4 `IMG_W=32` hardware failure by avoiding deep BRAM cascade inference in `span_sync_ram_1r1w`:
+   - `span_official_frame_engine` now rounds frame-engine feature/output RAM depths up to a power of two.
+   - `span_sync_ram_1r1w` now splits RAMs deeper than `4096` entries into independent 4K physical banks selected by the high address bits.
+   - This keeps the one-read/one-write synchronous RAM interface unchanged while avoiding the problematic single deep 16K RAM inference seen only at `IMG_W=32`.
+2. Regenerated the X4 `IMG_W=32` JTAG full SPAN bitstream.
+   - bitstream: `vivado/bitstreams/jfs_full_span_x4_32x32.bit`
+   - timing report: `vivado/reports/jtag_full_span_x4_32x32_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x4_32x32_utilization_impl.rpt`
+   - WNS: `12.959 ns`, WHS: `0.005 ns`; Vivado reports all user timing constraints met.
+   - resources: CLB LUTs `7753`, CLB Registers `4015`, Block RAM Tile `307`, DSPs `4`.
+   - synthesis: `0` errors, `0` critical warnings; the earlier BRAM depth/cascade warning is gone.
+3. Ran real PNG JTAG board validation with `external/SPAN/test_scripts/data/baboon.png` resized to `32x32`.
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_jtag_full_span_smoke.ps1 -Scale 4 -ImgW 32 -InputPng external\SPAN\test_scripts\data\baboon.png -OutputRaw board_runs\full_span_jtag_smoke\output_x4_32x32_banked_ram.rgb -OutputPng board_runs\full_span_jtag_smoke\baboon_x4_32x32_banked_ram_out.png`
+   - input counter: `1024`
+   - output counter: `16384`
+   - error flags: `0x00000000`
+   - output raw: `board_runs/full_span_jtag_smoke/output_x4_32x32_banked_ram.rgb` (`49152 bytes`)
+   - output png: `board_runs/full_span_jtag_smoke/baboon_x4_32x32_banked_ram_out.png`
+4. Fixed-point reference comparison passed byte-for-byte.
+   - result: `PASS compare_jtag_full_span_output_x4_32x32: 49152 bytes match`
+   - comparison preview: `board_runs/full_span_jtag_smoke/compare_x4_32x32_banked_ram/validation_preview_x4_32x32.png`
+
+Conclusion: X4 `32x32 -> 128x128` board output now matches the fixed-point reference byte-for-byte. The color-channel order remains validated by the exact raw-byte comparison and by the generated Input / Reference / Board / Diff preview.

@@ -49,8 +49,10 @@ module span_official_frame_engine #(
     localparam integer FEATURE_BANK_CH = (CH + FEATURE_BANKS - 1) / FEATURE_BANKS;
     localparam integer FEATURE_BANK_SIZE = FRAME_PIXELS * FEATURE_BANK_CH;
     localparam integer FEATURE_BANK_ADDR_W = (FEATURE_BANK_SIZE <= 2) ? 1 : $clog2(FEATURE_BANK_SIZE);
+    localparam integer FEATURE_BANK_RAM_DEPTH = 1 << FEATURE_BANK_ADDR_W;
     localparam integer UP_PIXEL_COUNT = FRAME_PIXELS * UP_SUBPIXELS;
     localparam integer UP_PIXEL_ADDR_W = (UP_PIXEL_COUNT <= 2) ? 1 : $clog2(UP_PIXEL_COUNT);
+    localparam integer UP_PIXEL_RAM_DEPTH = 1 << UP_PIXEL_ADDR_W;
 
     localparam [3:0] ST_CAPTURE = 4'd0;
     localparam [3:0] ST_PREP    = 4'd1;
@@ -179,7 +181,7 @@ module span_official_frame_engine #(
 `define SPAN_INST_FEATURE_RAM(NAME) \
     span_sync_ram_1r1w #( \
         .DATA_W(8), \
-        .DEPTH(FEATURE_BANK_SIZE), \
+        .DEPTH(FEATURE_BANK_RAM_DEPTH), \
         .ADDR_W(FEATURE_BANK_ADDR_W) \
     ) u_``NAME``_ram ( \
         .clk(clk), \
@@ -258,7 +260,7 @@ module span_official_frame_engine #(
 
     span_sync_ram_1r1w #(
         .DATA_W(8),
-        .DEPTH(UP_PIXEL_COUNT),
+        .DEPTH(UP_PIXEL_RAM_DEPTH),
         .ADDR_W(UP_PIXEL_ADDR_W)
     ) u_up_r_ram (
         .clk(clk),
@@ -271,7 +273,7 @@ module span_official_frame_engine #(
 
     span_sync_ram_1r1w #(
         .DATA_W(8),
-        .DEPTH(UP_PIXEL_COUNT),
+        .DEPTH(UP_PIXEL_RAM_DEPTH),
         .ADDR_W(UP_PIXEL_ADDR_W)
     ) u_up_g_ram (
         .clk(clk),
@@ -284,7 +286,7 @@ module span_official_frame_engine #(
 
     span_sync_ram_1r1w #(
         .DATA_W(8),
-        .DEPTH(UP_PIXEL_COUNT),
+        .DEPTH(UP_PIXEL_RAM_DEPTH),
         .ADDR_W(UP_PIXEL_ADDR_W)
     ) u_up_b_ram (
         .clk(clk),
