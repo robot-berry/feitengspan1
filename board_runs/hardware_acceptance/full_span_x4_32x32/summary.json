@@ -1,0 +1,57 @@
+﻿{
+    "passed":  true,
+    "dry_run":  false,
+    "branch":  "hardware-test",
+    "scale":  4,
+    "img_w":  32,
+    "output_w":  128,
+    "output_h":  128,
+    "pl_freq_mhz":  25,
+    "input_png":  "external\\SPAN\\test_scripts\\data\\baboon.png",
+    "vivado_bat":  "D:\\software\\2025.2\\Vivado\\bin\\vivado.bat",
+    "bitstream":  "G:\\UESTC\\feitengspan1\\vivado\\bitstreams\\jfs_full_span_x4_32x32.bit",
+    "timing":  {
+                   "path":  "G:\\UESTC\\feitengspan1\\vivado\\reports\\jtag_full_span_x4_32x32_timing_impl.rpt",
+                   "exists":  true,
+                   "wns_ns":  "12.959",
+                   "whs_ns":  "0.005",
+                   "timing_met":  true
+               },
+    "utilization":  {
+                        "path":  "G:\\UESTC\\feitengspan1\\vivado\\reports\\jtag_full_span_x4_32x32_utilization_impl.rpt",
+                        "exists":  true,
+                        "clb_luts":  "7753",
+                        "clb_registers":  "4015",
+                        "block_ram_tile":  "307",
+                        "dsps":  "4"
+                    },
+    "jtag":  {
+                 "output_raw":  "G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\board_output_x4_32x32.rgb",
+                 "output_png":  "G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\board_output_x4_32x32.png",
+                 "output_bytes":  49152,
+                 "expected_output_bytes":  49152,
+                 "reference_raw":  "G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\jtag\\compare_x4_32x32\\span_fixed_ref_jtag_x4_32x32.rgb",
+                 "compare":  {
+                                 "available":  true,
+                                 "actual_bytes":  49152,
+                                 "reference_bytes":  49152,
+                                 "mismatch_bytes":  0,
+                                 "match":  true
+                             },
+                 "preview_png":  "G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\jtag\\compare_x4_32x32\\validation_preview_x4_32x32.png",
+                 "output_dir":  "board_runs\\hardware_acceptance\\full_span_x4_32x32\\jtag"
+             },
+    "checks":  {
+                   "vivado_bat_exists":  true,
+                   "input_png_exists":  true,
+                   "bitstream_exists":  true,
+                   "timing_met":  true,
+                   "jtag_ran":  true,
+                   "reference_match":  true,
+                   "preview_exists":  true
+               },
+    "planned_commands":  {
+                             "build":  "powershell -ExecutionPolicy Bypass -File scripts\\run_vivado_bitstream_jtag_full_span_scale.ps1 -Scale 4 -ImgW 32 -PlFreqMhz 25 -VivadoBat \"D:\\software\\2025.2\\Vivado\\bin\\vivado.bat\"",
+                             "jtag":  "powershell -ExecutionPolicy Bypass -File scripts\\run_jtag_full_span_smoke.ps1 -Scale 4 -ImgW 32 -InputPng \"external\\SPAN\\test_scripts\\data\\baboon.png\" -Bitstream \"G:\\UESTC\\feitengspan1\\vivado\\bitstreams\\jfs_full_span_x4_32x32.bit\" -OutputDir \"board_runs\\hardware_acceptance\\full_span_x4_32x32\\jtag\" -OutputRaw \"G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\board_output_x4_32x32.rgb\" -OutputPng \"G:\\UESTC\\feitengspan1\\board_runs\\hardware_acceptance\\full_span_x4_32x32\\board_output_x4_32x32.png\""
+                         }
+}

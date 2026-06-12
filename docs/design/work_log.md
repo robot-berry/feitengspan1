@@ -1065,3 +1065,27 @@ Conclusion: the smoke video fine-tune only nudges temporal error, but the projec
    - quality preview: `runs/tinyspan_acceptance/video_smoke_c16_b3_x4_320x180_60f/quality/baboon_tinyspan_teacher_quality_x4.png`
 
 Conclusion: the current TinySPAN C16/B3 software pipeline passes the 720p30 realtime gate on GPU. The remaining gap is model quality, not software realtime throughput; a full video-frame distillation run should use this gate as its acceptance check.
+
+### 2026-06-12 hardware-test branch acceptance wrapper
+
+1. Created the dedicated `hardware-test` branch for FPGA/Vivado/JTAG validation while software optimization continues elsewhere.
+2. Added a hardware acceptance wrapper:
+   - script: `scripts/run_full_span_hardware_acceptance.ps1`
+   - note: `docs/design/hardware_test_branch_acceptance_2026_06_12.md`
+   - supports full build/JTAG, `-DryRun`, `-SkipBuild`, `-SkipJtag`, and `-SummarizeExisting`
+   - writes `summary.json` and `summary.md`
+   - records bitstream, timing/resource reports, board output, fixed-point reference match, and comparison preview
+3. Ran an X4 `32x32 -> 128x128` hardware acceptance on `hardware-test`.
+   - bitstream: `vivado/bitstreams/jfs_full_span_x4_32x32.bit`
+   - timing: WNS `12.959 ns`, WHS `0.005 ns`, all user constraints met
+   - resources: CLB LUTs `7753`, CLB Registers `4015`, Block RAM Tile `307`, DSPs `4`
+   - JTAG input counter: `1024`
+   - JTAG output counter: `16384`
+   - error flags: `0x00000000`
+   - board output bytes: `49152`
+   - fixed-point reference bytes: `49152`
+   - mismatch bytes: `0`
+   - summary: `board_runs/hardware_acceptance/full_span_x4_32x32/summary.md`
+   - preview: `board_runs/hardware_acceptance/full_span_x4_32x32/jtag/compare_x4_32x32/validation_preview_x4_32x32.png`
+
+Conclusion: the hardware-test branch now has a repeatable acceptance entry point. The current official full SPAN X4 `32x32` board output passes byte-exact validation against the fixed-point reference. Future TinySPAN hardware exports from the software branch should be validated through the same hardware acceptance pattern.
