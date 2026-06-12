@@ -166,3 +166,27 @@ On the 30-frame generated `baboon.png` sequence:
 - video-smoke C16/B3 temporal MAE: `0.029147`
 
 The smoke improvement is tiny, but future video distillation runs now have an explicit temporal gate to optimize.
+
+## Realtime acceptance gate
+
+Use `tools/run_tinyspan_realtime_acceptance.py` for a one-command checkpoint gate. It runs:
+
+- end-to-end stream benchmark with MP4 output
+- OpenCV encoded-video readback
+- official-SPAN teacher quality check
+- temporal consistency quality check
+- PASS/FAIL summary
+
+The first gate run is documented in `docs/design/tinyspan_realtime_acceptance_2026_06_12.md`.
+
+Smoke C16/B3 result:
+
+- checkpoint: `runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/student_last.pt`
+- X4 `320x180 -> 1280x720 @30`
+- stream result: `65.375 fps`, `15.296 ms/frame`
+- encoded video readback: `60` frames, `30.000 fps`, `1280x720`
+- teacher quality: `29.939 dB` mean PSNR, `0.020711` mean MAE
+- temporal quality: `0.029147` temporal MAE
+- gate result: `PASS`
+
+This gate proves software realtime readiness for the current lightweight checkpoint. Final model quality still depends on a full video-frame distillation run.

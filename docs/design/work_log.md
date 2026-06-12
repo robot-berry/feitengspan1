@@ -1041,3 +1041,27 @@ Conclusion: the realtime path now has all three software loops: throughput measu
    - temporal MSE: `0.00196206`
 
 Conclusion: the smoke video fine-tune only nudges temporal error, but the project now measures video stability directly. Full video-frame distillation can be judged by temporal MAE/PSNR instead of relying only on visual playback.
+
+### 2026-06-12 TinySPAN realtime acceptance gate
+
+1. Added a one-command realtime checkpoint gate.
+   - script: `tools/run_tinyspan_realtime_acceptance.py`
+   - note: `docs/design/tinyspan_realtime_acceptance_2026_06_12.md`
+   - runs stream FPS, MP4 encode, OpenCV video readback, teacher quality, and temporal quality
+   - writes `summary.json` and `summary.md`
+2. Ran the gate on the current video-smoke C16/B3 checkpoint.
+   - command: `python tools\run_tinyspan_realtime_acceptance.py --checkpoint runs\tinyspan_distill\video_smoke_x4_c16_b3_baboon\student_last.pt --scale 4 --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --fps 30 --stream-frames 60 --quality-frames 30 --min-fps 30 --out-dir runs\tinyspan_acceptance\video_smoke_c16_b3_x4_320x180_60f --half --async-writer --motion --preview-tile 180`
+   - gate result: `PASS`
+   - target: X4 `320x180 -> 1280x720 @30`
+   - stream FPS: `65.375`
+   - stream latency: `15.296 ms/frame`
+   - stream inference: `11.347 ms/frame`
+   - encoded-video readback: `60` frames, `30.000 fps`, `1280x720`
+   - teacher quality PSNR: `29.939 dB`
+   - teacher quality MAE: `0.020711`
+   - temporal MAE: `0.029147`
+   - summary: `runs/tinyspan_acceptance/video_smoke_c16_b3_x4_320x180_60f/summary.md`
+   - stream preview: `runs/tinyspan_acceptance/video_smoke_c16_b3_x4_320x180_60f/stream/baboon_tinyspan_c16_b3_stream_comparison_x4.png`
+   - quality preview: `runs/tinyspan_acceptance/video_smoke_c16_b3_x4_320x180_60f/quality/baboon_tinyspan_teacher_quality_x4.png`
+
+Conclusion: the current TinySPAN C16/B3 software pipeline passes the 720p30 realtime gate on GPU. The remaining gap is model quality, not software realtime throughput; a full video-frame distillation run should use this gate as its acceptance check.

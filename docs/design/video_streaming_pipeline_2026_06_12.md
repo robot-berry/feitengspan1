@@ -91,3 +91,17 @@ This still does not complete the FPGA realtime goal. It does prove a practical s
 - X4 720p30 total budget: `33.333 ms/frame`
 - current CUDA stream with async writer: `24.261 ms/frame` on the 180-frame run
 - current CUDA model inference alone: `21.125 ms/frame` on the 180-frame run
+
+## TinySPAN acceptance gate
+
+The stream tool is now part of `tools/run_tinyspan_realtime_acceptance.py`, which also runs teacher/student quality and temporal consistency checks. The first C16/B3 smoke checkpoint gate is documented in `docs/design/tinyspan_realtime_acceptance_2026_06_12.md`.
+
+Result for `runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/student_last.pt`:
+
+- X4 `320x180 -> 1280x720 @30`
+- end-to-end stream FPS: `65.375`
+- end-to-end stream latency: `15.296 ms/frame`
+- encoded-video readback: `60` frames, `30.000 fps`, `1280x720`
+- gate result: `PASS`
+
+This verifies the current lightweight software path as a realtime 720p30 demo path. Quality remains smoke-level until full video-frame distillation is run.
