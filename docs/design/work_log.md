@@ -728,3 +728,29 @@ Conclusion: X4 `32x32 -> 128x128` board output now matches the fixed-point refer
    - comparison preview: `board_runs/full_span_jtag_smoke/compare_x2_32x32_banked_ram/validation_preview_x2_32x32.png`
 
 Conclusion: X2 `32x32 -> 64x64` board output matches the fixed-point reference byte-for-byte. This gives matching, color-channel-checked board results for both X2 and X4 at `IMG_W=32` using the current official image.
+
+### 2026-06-12 video realtime planning and 40MHz clock ramp - PASSED
+
+1. Reframed the next project stage from single-image validation to realtime video super-resolution.
+   - First practical realtime target: `30 fps`.
+   - Later smooth-video target: `60 fps`.
+   - Typical display pixel clocks: `1280x720@60` and `1920x1080@30` use about `74.25 MHz`; `1920x1080@60` uses about `148.5 MHz`.
+2. Added a throughput estimator for the current sequential full SPAN frame engine:
+   - script: `tools/estimate_span_video_perf.py`
+   - note: `docs/design/video_realtime_perf_estimate_2026_06_12.md`
+   - Current X4 engine estimate: `1,276,752` cycles per LR input pixel.
+   - Current X2 engine estimate: `1,230,060` cycles per LR input pixel.
+3. Key realtime estimates at `150 MHz`:
+   - X4 `32x32 -> 128x128`: about `0.115 fps`; needs about `261.5x` speedup for `30 fps`.
+   - X4 `320x180 -> 1280x720`: about `0.002 fps`; needs about `14708.7x` speedup for `30 fps`.
+   - X2 `640x360 -> 1280x720`: about `0.00053 fps`; needs about `56681.8x` speedup for `30 fps`.
+4. Ran the first real clock-ramp implementation point for X4 `IMG_W=32`:
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_vivado_jtag_full_span_freq_sweep.ps1 -Scale 4 -ImgW 32 -FrequenciesMhz 40 -StopOnFailure`
+   - result CSV: `vivado/reports/jtag_full_span_x4_32x32_freq_sweep.csv`
+   - timing report: `vivado/reports/jtag_full_span_x4_32x32_f40m_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x4_32x32_f40m_utilization_impl.rpt`
+   - local bitstream: `vivado/bitstreams/jfs_full_span_x4_32x32_f40m.bit`
+   - reported `clk_pl_0`: `40 MHz`
+   - WNS: `6.289 ns`, TNS: `0`, WHS: `0.015 ns`; Vivado reports all user timing constraints met.
+
+Conclusion: the existing byte-exact SPAN validation engine can pass `40 MHz`, and `50 MHz` is a reasonable next timing experiment. However, realtime video cannot be achieved by frequency ramp alone. The next architecture work should keep official SPAN as the correctness/quality reference and create a video-oriented lightweight/parallel datapath with many MAC lanes, registered BRAM boundaries, and a streaming video shell.
