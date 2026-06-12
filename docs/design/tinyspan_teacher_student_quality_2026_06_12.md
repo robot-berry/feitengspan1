@@ -18,9 +18,17 @@ Inputs:
 Outputs:
 
 - `metrics.json`: aggregate quality and timing metrics
-- `frame_metrics.csv`: per-frame MSE, MAE, max absolute error, and PSNR
+- `frame_metrics.csv`: per-frame MSE, MAE, max absolute error, PSNR, and adjacent-frame temporal error
 - comparison PNG: LR input, bicubic, official teacher, TinySPAN student, amplified absolute diff
 - first-frame teacher/student/diff PNGs
+
+Temporal metrics compare adjacent-frame deltas:
+
+```text
+student_delta = student_frame_i - student_frame_(i-1)
+teacher_delta = teacher_frame_i - teacher_frame_(i-1)
+temporal_error = student_delta - teacher_delta
+```
 
 ## Smoke command
 
@@ -74,3 +82,14 @@ Artifacts:
 ## Interpretation
 
 This is a smoke-quality baseline, not the final realtime model quality. The C16/B3 student is already much faster than the teacher, but the amplified diff preview shows visible high-frequency differences around texture and edges. The next quality step is full distillation on REDS/video-frame data, then rerun this exact quality tool and require the student-vs-teacher PSNR/MAE and visual diff to improve.
+
+## Temporal metric update
+
+The evaluator now also reports temporal consistency against the official SPAN teacher. On the same 30-frame generated `baboon.png` sequence:
+
+| Checkpoint | Mean PSNR | Mean MAE | Temporal MAE | Temporal MSE | Student ms/frame |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| single-frame smoke C16/B3 | `29.942 dB` | `0.020633` | `0.029199` | `0.00196856` | `7.726` |
+| video-smoke C16/B3 | `29.939 dB` | `0.020711` | `0.029147` | `0.00196206` | `7.821` |
+
+The 6-step video-smoke checkpoint gives only a tiny temporal improvement, as expected. The important result is that video stability is now a measured gate, not just a visual impression.

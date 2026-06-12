@@ -100,6 +100,8 @@ Result against the official SPAN teacher:
 - mean MAE: `0.020711`
 - mean MSE: `0.00101686`
 - max absolute channel error: `0.386230`
+- temporal MAE: `0.029147`
+- temporal MSE: `0.00196206`
 - paired teacher inference: `32.882 ms/frame`
 - paired student inference: `8.357 ms/frame`
 
@@ -115,3 +117,14 @@ The short smoke fine-tune proves the video-frame distillation loop and temporal 
 
 - `tools/evaluate_tinyspan_video_quality.py` for student-vs-teacher quality
 - `tools/run_span_video_stream.py` for realtime FPS
+
+## Temporal evaluation baseline
+
+After adding temporal metrics to `tools/evaluate_tinyspan_video_quality.py`, the same 30-frame generated `baboon.png` sequence was evaluated for the pre-video and post-video-smoke checkpoints:
+
+| Checkpoint | Mean PSNR | Temporal MAE | Temporal PSNR |
+| --- | ---: | ---: | ---: |
+| single-frame smoke C16/B3 | `29.942 dB` | `0.029199` | `32.963 dB` |
+| video-smoke C16/B3 | `29.939 dB` | `0.029147` | `32.977 dB` |
+
+This is a small movement, not a quality claim. The value is the new measurement loop: future full video-frame distillation runs can be judged by both frame PSNR/MAE and temporal MAE/PSNR.

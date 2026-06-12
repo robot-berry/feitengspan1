@@ -151,3 +151,18 @@ Smoke result:
 - post-train teacher quality check: `29.939 dB` mean PSNR, `0.020711` mean MAE
 
 This proves the video-specific training loop. A real quality improvement requires a full run on REDS or another extracted video-frame dataset.
+
+## Temporal quality metric
+
+The quality evaluator now reports adjacent-frame consistency in addition to frame quality. It compares:
+
+```text
+(student_frame_i - student_frame_(i-1)) vs (teacher_frame_i - teacher_frame_(i-1))
+```
+
+On the 30-frame generated `baboon.png` sequence:
+
+- single-frame smoke C16/B3 temporal MAE: `0.029199`
+- video-smoke C16/B3 temporal MAE: `0.029147`
+
+The smoke improvement is tiny, but future video distillation runs now have an explicit temporal gate to optimize.

@@ -1020,3 +1020,24 @@ Conclusion: the project now has a concrete quality gate for optimized realtime s
    - preview: `runs/tinyspan_quality/video_smoke_c16_b3_baboon_x4_320x180_30f/baboon_tinyspan_teacher_quality_x4.png`
 
 Conclusion: the realtime path now has all three software loops: throughput measurement, teacher/student quality evaluation, and video-frame temporal distillation. The smoke run proves the mechanics; the next quality-moving step is a full REDS or extracted-video-frame distillation run.
+
+### 2026-06-12 TinySPAN temporal quality metric
+
+1. Extended `tools/evaluate_tinyspan_video_quality.py` with adjacent-frame temporal metrics.
+   - per-frame CSV now includes `temporal_mse`, `temporal_mae`, `temporal_max_abs`, and `temporal_psnr_db`
+   - aggregate metrics now include mean/min temporal values over `frames - 1` frame deltas
+   - comparison preview summary now includes temporal MAE
+2. Re-ran the quality gate for the original single-frame smoke C16/B3 checkpoint.
+   - command: `python tools\evaluate_tinyspan_video_quality.py --scale 4 --student-checkpoint runs\tinyspan_distill\smoke_x4_c16_b3_baboon\student_last.pt --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 30 --fps 30 --motion --out-dir runs\tinyspan_quality\smoke_c16_b3_baboon_x4_320x180_30f_temporal --half --preview-tile 180 --diff-gain 8`
+   - mean PSNR: `29.942 dB`
+   - mean MAE: `0.020633`
+   - temporal MAE: `0.029199`
+   - temporal MSE: `0.00196856`
+3. Re-ran the quality gate for the video-smoke C16/B3 checkpoint.
+   - command: `python tools\evaluate_tinyspan_video_quality.py --scale 4 --student-checkpoint runs\tinyspan_distill\video_smoke_x4_c16_b3_baboon\student_last.pt --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 30 --fps 30 --motion --out-dir runs\tinyspan_quality\video_smoke_c16_b3_baboon_x4_320x180_30f_temporal --half --preview-tile 180 --diff-gain 8`
+   - mean PSNR: `29.939 dB`
+   - mean MAE: `0.020711`
+   - temporal MAE: `0.029147`
+   - temporal MSE: `0.00196206`
+
+Conclusion: the smoke video fine-tune only nudges temporal error, but the project now measures video stability directly. Full video-frame distillation can be judged by temporal MAE/PSNR instead of relying only on visual playback.

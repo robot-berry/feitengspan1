@@ -43,13 +43,27 @@ def tensor_to_rgb_u8(tensor: torch.Tensor) -> np.ndarray:
     return out.squeeze(0).permute(1, 2, 0).contiguous().cpu().numpy()
 
 
-def tensor_diff_metrics(student: torch.Tensor, teacher: torch.Tensor) -> dict[str, float]:
+def tensor_diff_metrics(student: torch.Tensor, teacher: torch.Tensor, peak: float = 1.0) -> dict[str, float]:
     diff = (student.float().clamp(0, 1) - teacher.float().clamp(0, 1)).abs()
     mse = float((diff * diff).mean().item())
     mae = float(diff.mean().item())
     max_abs = float(diff.max().item())
-    psnr = float("inf") if mse <= 0.0 else 10.0 * math.log10(1.0 / mse)
+    psnr = float("inf") if mse <= 0.0 else 10.0 * math.log10((peak * peak) / mse)
     return {"mse": mse, "mae": mae, "max_abs": max_abs, "psnr_db": psnr}
+
+
+def tensor_delta_metrics(student_delta: torch.Tensor, teacher_delta: torch.Tensor) -> dict[str, float]:
+    diff = (student_delta.float() - teacher_delta.float()).abs()
+    mse = float((diff * diff).mean().item())
+    mae = float(diff.mean().item())
+    max_abs = float(diff.max().item())
+    psnr = float("inf") if mse <= 0.0 else 10.0 * math.log10(4.0 / mse)
+    return {
+        "temporal_mse": mse,
+        "temporal_mae": mae,
+        "temporal_max_abs": max_abs,
+        "temporal_psnr_db": psnr,
+    }
 
 
 def diff_image(student_rgb: np.ndarray, teacher_rgb: np.ndarray, gain: float) -> Image.Image:
@@ -87,7 +101,7 @@ def make_quality_preview(
     draw.text((gap, 12), title, fill=(20, 24, 31))
     summary = (
         f"frames: {metrics['frames']}, PSNR: {metrics['psnr_db_mean']:.3f} dB, "
-        f"MAE: {metrics['mae_mean']:.6f}, max abs: {metrics['max_abs_max']:.6f}"
+        f"MAE: {metrics['mae_mean']:.6f}, temporal MAE: {metrics['temporal_mae_mean']:.6f}"
     )
     draw.text((gap, height - summary_h + 5), summary, fill=(64, 72, 84))
     x = gap
@@ -188,6 +202,8 @@ def main() -> None:
     first_teacher: Image.Image | None = None
     first_student: Image.Image | None = None
     first_diff: Image.Image | None = None
+    prev_teacher: torch.Tensor | None = None
+    prev_student: torch.Tensor | None = None
     teacher_s = 0.0
     student_s = 0.0
     start = time.perf_counter()
@@ -208,7 +224,21 @@ def main() -> None:
             student_s += time.perf_counter() - t0
 
             row = tensor_diff_metrics(student_out, teacher_out)
+            if prev_teacher is not None and prev_student is not None:
+                temporal = tensor_delta_metrics(student_out - prev_student, teacher_out - prev_teacher)
+                row.update(temporal)
+            else:
+                row.update(
+                    {
+                        "temporal_mse": "",
+                        "temporal_mae": "",
+                        "temporal_max_abs": "",
+                        "temporal_psnr_db": "",
+                    }
+                )
             frame_rows.append({"frame": frame_index, **row})
+            prev_teacher = teacher_out.detach()
+            prev_student = student_out.detach()
 
             if first_lr is None:
                 teacher_rgb = tensor_to_rgb_u8(teacher_out)
@@ -227,6 +257,11 @@ def main() -> None:
     mae_values = [float(row["mae"]) for row in frame_rows]
     psnr_values = [float(row["psnr_db"]) for row in frame_rows]
     max_abs_values = [float(row["max_abs"]) for row in frame_rows]
+    temporal_rows = [row for row in frame_rows if row["temporal_mae"] != ""]
+    temporal_mse_values = [float(row["temporal_mse"]) for row in temporal_rows]
+    temporal_mae_values = [float(row["temporal_mae"]) for row in temporal_rows]
+    temporal_psnr_values = [float(row["temporal_psnr_db"]) for row in temporal_rows]
+    temporal_max_abs_values = [float(row["temporal_max_abs"]) for row in temporal_rows]
     metrics = {
         "input": str(args.input),
         "source_mode": source.mode,
@@ -251,6 +286,12 @@ def main() -> None:
         "psnr_db_mean": finite_mean(psnr_values),
         "psnr_db_min": float(min(psnr_values)),
         "max_abs_max": float(max(max_abs_values)),
+        "temporal_frames": len(temporal_rows),
+        "temporal_mse_mean": float(sum(temporal_mse_values) / len(temporal_mse_values)) if temporal_mse_values else 0.0,
+        "temporal_mae_mean": float(sum(temporal_mae_values) / len(temporal_mae_values)) if temporal_mae_values else 0.0,
+        "temporal_psnr_db_mean": finite_mean(temporal_psnr_values) if temporal_psnr_values else float("inf"),
+        "temporal_psnr_db_min": float(min(temporal_psnr_values)) if temporal_psnr_values else float("inf"),
+        "temporal_max_abs_max": float(max(temporal_max_abs_values)) if temporal_max_abs_values else 0.0,
         "teacher_ms_per_frame": teacher_s / len(frame_rows) * 1000.0,
         "student_ms_per_frame": student_s / len(frame_rows) * 1000.0,
         "total_elapsed_s": total_s,
@@ -261,7 +302,20 @@ def main() -> None:
     metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     csv_path = out_dir / "frame_metrics.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["frame", "mse", "mae", "max_abs", "psnr_db"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "frame",
+                "mse",
+                "mae",
+                "max_abs",
+                "psnr_db",
+                "temporal_mse",
+                "temporal_mae",
+                "temporal_max_abs",
+                "temporal_psnr_db",
+            ],
+        )
         writer.writeheader()
         writer.writerows(frame_rows)
 
