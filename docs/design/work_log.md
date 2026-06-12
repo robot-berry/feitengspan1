@@ -827,3 +827,36 @@ Conclusion: the CUDA prototype can run the current official SPAN X4 model at abo
    - CSV: `runs/span_gpu_realtime/profile_summary_2026_06_12.csv`
 
 Conclusion: for a software video demonstration, the current best route is official SPAN X4 with `320x180` input to `1280x720` output, which clears the `30 fps` realtime target on the RTX 3060 Laptop GPU. X2 `640x360 -> 1280x720` is close but not yet realtime at 30 fps. The FPGA target is still not complete; these GPU measurements define the next hardware throughput and quality target.
+
+### 2026-06-12 end-to-end CUDA video stream - NEAR 720p30
+
+1. Added a real streaming video pipeline:
+   - script: `tools/run_span_video_stream.py`
+   - note: `docs/design/video_streaming_pipeline_2026_06_12.md`
+   - inputs: video file, still image as repeated frames, still image with synthetic pan motion
+   - outputs: MP4 video, `metrics.json`, first-frame input/bicubic/SPAN comparison PNG
+2. Ran an initial X4 `320x180 -> 1280x720` 60-frame stream with FP16.
+   - source: `external/SPAN/test_scripts/data/baboon.png`
+   - motion mode: enabled
+   - result before output-path optimization: `16.691 fps`
+   - bottleneck: PIL/float CPU postprocess path at `22.064 ms/frame`
+3. Optimized streaming postprocess.
+   - previous path: convert tensor to float CPU/PIL image, then to OpenCV BGR
+   - new path: quantize tensor to `uint8` on GPU, transfer one contiguous RGB array, then encode with OpenCV
+   - postprocess improved from `22.064 ms/frame` to `1.079 ms/frame`
+4. Re-ran the same stream after optimization.
+   - command: `python tools\run_span_video_stream.py --scale 4 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 60 --fps 30 --motion --out-dir runs\span_video_stream\baboon_x4_320x180_60f_fp16_fastpost --half --preview-tile 240`
+   - end-to-end throughput: `29.861 fps`
+   - end-to-end latency: `33.488 ms/frame`
+   - inference: `24.420 ms/frame`
+   - preprocess: `1.754 ms/frame`
+   - postprocess: `1.079 ms/frame`
+   - encode: `5.876 ms/frame`
+   - output video: `runs/span_video_stream/baboon_x4_320x180_60f_fp16_fastpost/baboon_span_stream_x4.mp4`
+   - metrics: `runs/span_video_stream/baboon_x4_320x180_60f_fp16_fastpost/metrics.json`
+   - comparison image: `runs/span_video_stream/baboon_x4_320x180_60f_fp16_fastpost/baboon_stream_comparison_x4.png`
+5. Tested channels-last on the same stream.
+   - channels-last FP16 result: `27.444 fps`
+   - conclusion: keep ordinary NCHW FP16 for this SPAN checkpoint and RTX 3060 Laptop GPU.
+
+Conclusion: the CUDA software path is now effectively at the X4 720p30 video-demo target including output encoding (`29.861 fps` versus the ideal `30 fps`). The FPGA realtime implementation is still not done, but the software reference is now a concrete end-to-end target rather than only a single-frame inference estimate.
