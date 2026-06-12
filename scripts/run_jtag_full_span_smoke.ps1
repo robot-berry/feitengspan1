@@ -1,7 +1,7 @@
 param(
   [ValidateSet(2, 4)]
   [int]$Scale = 4,
-  [ValidateRange(1, 16)]
+  [ValidateRange(1, 32)]
   [int]$ImgW = 1,
   [ValidatePattern("^[0-9A-Fa-f]{6}$")]
   [string]$PixelHex = "406080",
@@ -148,6 +148,9 @@ try {
     -InputRaw $inputRawPath `
     -OutputRaw $outputRawPath `
     -BuildDir $compareDir
+  if ($LASTEXITCODE -ne 0) {
+    throw "JTAG output comparison failed with exit code $LASTEXITCODE"
+  }
 
   Write-Host "FULL_SPAN_JTAG_OUTPUT_BYTES=$($outputBytes.Length)"
   Write-Host "FULL_SPAN_JTAG_OUTPUT_IMAGE=$OutputPng"

@@ -420,3 +420,31 @@ Conclusion: X4 `16x16 -> 64x64` board output matches the fixed-point reference b
    - comparison preview: `board_runs/full_span_jtag_smoke/compare_x2_16x16/validation_preview_x2_16x16.png`
 
 Conclusion: X2 `16x16 -> 32x32` board output matches the fixed-point reference byte-for-byte and the required Input / Reference / Board / Diff comparison image was generated.
+
+### 2026-06-12 X4 32x32 board validation attempt - FAILED / in progress
+
+1. Generated a new X4 `IMG_W=32` JTAG full SPAN bitstream with the validation path configured as raw SPAN output:
+   - bitstream: `vivado/bitstreams/jfs_full_span_x4_32x32.bit`
+   - timing report: `vivado/reports/jtag_full_span_x4_32x32_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x4_32x32_utilization_impl.rpt`
+   - WNS: `13.099 ns`, WHS: `0.003 ns`; Vivado reports all user timing constraints met.
+   - resources: CLB Registers `3925`, Block RAM Tile `275`, DSPs `4`.
+2. Disabled validation-time video brightness post-processing in the full-span JTAG/SD BD path:
+   - `sr_jtag_rgb_transfer_endpoint` and `sr_sd_axi_lite_accel` now pass `VIDEO_GAIN_EN` into `sr_super_resolution_pipeline`.
+   - `create_vivado_jtag_full_span_bd_project.tcl` and `create_vivado_sd_full_span_bd_project.tcl` set `CONFIG.VIDEO_GAIN_EN {0}` for full-span validation designs.
+3. Ran real PNG JTAG board validation with the current image `external/SPAN/test_scripts/data/baboon.png` resized to `32x32`.
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_jtag_full_span_smoke.ps1 -Scale 4 -ImgW 32 -InputPng external\SPAN\test_scripts\data\baboon.png -OutputPng board_runs\full_span_jtag_smoke\baboon_x4_32x32_pixelshuffle_fixed_out.png`
+   - input counter: `1024`
+   - output counter: `16384`
+   - error flags: `0x00000000`
+   - output raw: `board_runs/full_span_jtag_smoke/output_x4_32x32.rgb` (`49152 bytes`)
+   - output png: `board_runs/full_span_jtag_smoke/baboon_x4_32x32_pixelshuffle_fixed_out.png`
+4. Fixed-point reference comparison failed. The board output was saturated to `0x7F` for all `49152` bytes, while the reference starts with low fixed-point values.
+   - result: `JTAG full SPAN output mismatch count: 49152`
+   - comparison preview: `board_runs/full_span_jtag_smoke/compare_x4_32x32_current_after_videogain_off/validation_preview_x4_32x32.png`
+5. Ran an additional all-black `32x32` diagnostic frame using the same programmed bitstream; it also returned all `0x7F`, so the failure is not image-content-specific.
+   - diagnostic input: `board_runs/full_span_jtag_smoke/input_x4_32x32_black.rgb`
+   - diagnostic output: `board_runs/full_span_jtag_smoke/output_x4_32x32_black.rgb`
+   - diagnostic preview: `board_runs/full_span_jtag_smoke/compare_x4_32x32_black/validation_preview_x4_32x32.png`
+
+Conclusion: X4 `32x32 -> 128x128` is NOT validated yet. JTAG transfer and counters are complete, but the full SPAN frame engine or its synthesized storage/address path saturates at `IMG_W=32`. Keep X4 `16x16` as the largest passing X4 board result until the 32x32 engine issue is fixed.

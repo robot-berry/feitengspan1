@@ -1,7 +1,7 @@
-﻿param(
+param(
   [ValidateSet(2, 4)]
   [int]$Scale = 4,
-  [ValidateRange(1, 16)]
+  [ValidateRange(1, 32)]
   [int]$ImgW = 4,
   [string]$InputRaw = "",
   [string]$OutputRaw = "",
