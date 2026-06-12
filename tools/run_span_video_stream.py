@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import queue
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,10 +50,11 @@ class Timings:
     preprocess_s: float = 0.0
     inference_s: float = 0.0
     postprocess_s: float = 0.0
+    encode_enqueue_s: float = 0.0
     encode_s: float = 0.0
 
     def total(self) -> float:
-        return self.read_s + self.preprocess_s + self.inference_s + self.postprocess_s + self.encode_s
+        return self.read_s + self.preprocess_s + self.inference_s + self.postprocess_s + self.encode_enqueue_s
 
 
 def open_cv2():
@@ -130,6 +133,45 @@ def make_writer(path: Path, fps: float, size: tuple[int, int]):
     return writer
 
 
+class AsyncVideoWriter:
+    def __init__(self, path: Path, fps: float, size: tuple[int, int], max_queue: int = 4) -> None:
+        self.cv2 = open_cv2()
+        self.writer = make_writer(path, fps, size)
+        self.queue: queue.Queue[np.ndarray | None] = queue.Queue(maxsize=max_queue)
+        self.encode_s = 0.0
+        self.frames = 0
+        self.error: BaseException | None = None
+        self.thread = threading.Thread(target=self._run, name="span-video-writer", daemon=True)
+        self.thread.start()
+
+    def _run(self) -> None:
+        try:
+            while True:
+                frame = self.queue.get()
+                try:
+                    if frame is None:
+                        return
+                    t0 = time.perf_counter()
+                    self.writer.write(self.cv2.cvtColor(frame, self.cv2.COLOR_RGB2BGR))
+                    self.encode_s += time.perf_counter() - t0
+                    self.frames += 1
+                finally:
+                    self.queue.task_done()
+        except BaseException as exc:  # pragma: no cover - propagated on close
+            self.error = exc
+
+    def write(self, frame_rgb: np.ndarray) -> None:
+        self.queue.put(frame_rgb)
+
+    def close(self) -> None:
+        self.queue.put(None)
+        self.queue.join()
+        self.thread.join()
+        self.writer.release()
+        if self.error is not None:
+            raise RuntimeError("async video writer failed") from self.error
+
+
 def tensor_to_rgb_u8(tensor: torch.Tensor) -> np.ndarray:
     out = tensor.detach().clamp(0, 1).mul(255).round().to(torch.uint8)
     return out.squeeze(0).permute(1, 2, 0).contiguous().cpu().numpy()
@@ -152,6 +194,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--frames", type=int, default=60, help="Frame count for image input, or max frames for video input.")
     parser.add_argument("--fps", type=float, default=30.0, help="Output FPS for image input.")
     parser.add_argument("--motion", action="store_true", help="Pan across an image input instead of repeating it exactly.")
+    parser.add_argument("--async-writer", action="store_true", help="Encode frames in a background thread.")
+    parser.add_argument("--writer-queue", type=int, default=4, help="Maximum queued frames for --async-writer.")
     parser.add_argument("--preview-tile", type=int, default=240)
     return parser.parse_args()
 
@@ -187,6 +231,8 @@ def main() -> None:
     output_path = args.output or (out_dir / f"{source.name}_span_stream_x{scale}.mp4")
 
     writer = None
+    writer_is_async = False
+    cv2 = open_cv2()
     timings = Timings()
     frame_count = 0
     first_lr: Image.Image | None = None
@@ -221,12 +267,19 @@ def main() -> None:
 
             if writer is None:
                 out_size = (int(sr_rgb.shape[1]), int(sr_rgb.shape[0]))
-                writer = make_writer(output_path, source.fps or args.fps, out_size)
+                if args.async_writer:
+                    writer = AsyncVideoWriter(output_path, source.fps or args.fps, out_size, args.writer_queue)
+                    writer_is_async = True
+                else:
+                    writer = make_writer(output_path, source.fps or args.fps, out_size)
 
             t0 = time.perf_counter()
-            cv2 = open_cv2()
-            writer.write(cv2.cvtColor(sr_rgb, cv2.COLOR_RGB2BGR))
-            timings.encode_s += time.perf_counter() - t0
+            if writer_is_async:
+                writer.write(sr_rgb)
+                timings.encode_enqueue_s += time.perf_counter() - t0
+            else:
+                writer.write(cv2.cvtColor(sr_rgb, cv2.COLOR_RGB2BGR))
+                timings.encode_s += time.perf_counter() - t0
 
             if first_lr is None:
                 first_lr = lr
@@ -235,7 +288,11 @@ def main() -> None:
             frame_count += 1
     finally:
         if writer is not None:
-            writer.release()
+            if writer_is_async:
+                writer.close()
+                timings.encode_s = writer.encode_s
+            else:
+                writer.release()
 
     elapsed = time.perf_counter() - start_total
     fps = frame_count / elapsed if elapsed > 0 else 0.0
@@ -257,6 +314,8 @@ def main() -> None:
         "dtype": "fp16" if half else "fp32",
         "channels_last": channels_last,
         "tf32": bool(args.tf32 and device.type == "cuda"),
+        "async_writer": bool(args.async_writer),
+        "writer_queue": int(args.writer_queue),
         "end_to_end_fps": fps,
         "end_to_end_latency_ms": 1000.0 / fps if fps > 0 else 0.0,
         "total_elapsed_s": elapsed,
@@ -264,11 +323,13 @@ def main() -> None:
         "preprocess_s": timings.preprocess_s,
         "inference_s": timings.inference_s,
         "postprocess_s": timings.postprocess_s,
+        "encode_enqueue_s": timings.encode_enqueue_s,
         "encode_s": timings.encode_s,
         "read_ms_per_frame": timings.read_s / frame_count * 1000.0,
         "preprocess_ms_per_frame": timings.preprocess_s / frame_count * 1000.0,
         "inference_ms_per_frame": timings.inference_s / frame_count * 1000.0,
         "postprocess_ms_per_frame": timings.postprocess_s / frame_count * 1000.0,
+        "encode_enqueue_ms_per_frame": timings.encode_enqueue_s / frame_count * 1000.0,
         "encode_ms_per_frame": timings.encode_s / frame_count * 1000.0,
     }
     metrics_path = out_dir / "metrics.json"

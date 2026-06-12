@@ -860,3 +860,31 @@ Conclusion: for a software video demonstration, the current best route is offici
    - conclusion: keep ordinary NCHW FP16 for this SPAN checkpoint and RTX 3060 Laptop GPU.
 
 Conclusion: the CUDA software path is now effectively at the X4 720p30 video-demo target including output encoding (`29.861 fps` versus the ideal `30 fps`). The FPGA realtime implementation is still not done, but the software reference is now a concrete end-to-end target rather than only a single-frame inference estimate.
+
+### 2026-06-12 async CUDA video writer - 720p30 PASSED
+
+1. Added asynchronous MP4 writing to `tools/run_span_video_stream.py`.
+   - option: `--async-writer`
+   - queue depth option: `--writer-queue`
+   - purpose: overlap OpenCV MP4 encoding with the next frame's preprocessing, CUDA inference, and postprocess.
+2. Re-ran the 60-frame X4 `320x180 -> 1280x720` FP16 stream with async writer.
+   - command: `python tools\run_span_video_stream.py --scale 4 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 60 --fps 30 --motion --out-dir runs\span_video_stream\baboon_x4_320x180_60f_fp16_async_writer --half --async-writer --preview-tile 240`
+   - end-to-end throughput: `34.581 fps`
+   - end-to-end latency: `28.917 ms/frame`
+   - inference: `25.196 ms/frame`
+   - postprocess: `1.130 ms/frame`
+   - async encode work: `6.320 ms/frame`
+   - metrics: `runs/span_video_stream/baboon_x4_320x180_60f_fp16_async_writer/metrics.json`
+   - comparison image: `runs/span_video_stream/baboon_x4_320x180_60f_fp16_async_writer/baboon_stream_comparison_x4.png`
+3. Ran a longer 180-frame stability check with the same settings.
+   - command: `python tools\run_span_video_stream.py --scale 4 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 180 --fps 30 --motion --out-dir runs\span_video_stream\baboon_x4_320x180_180f_fp16_async_writer --half --async-writer --preview-tile 240`
+   - end-to-end throughput: `41.218 fps`
+   - end-to-end latency: `24.261 ms/frame`
+   - inference: `21.125 ms/frame`
+   - postprocess: `0.893 ms/frame`
+   - async encode work: `6.901 ms/frame`
+   - OpenCV readback: `180` frames, `30.0 fps`, `1280x720`
+   - metrics: `runs/span_video_stream/baboon_x4_320x180_180f_fp16_async_writer/metrics.json`
+   - comparison image: `runs/span_video_stream/baboon_x4_320x180_180f_fp16_async_writer/baboon_stream_comparison_x4.png`
+
+Conclusion: the CUDA software video path now exceeds the X4 720p30 realtime target end-to-end, including MP4 output. This is a software reference and demo path; the FPGA realtime datapath remains a separate implementation task.
