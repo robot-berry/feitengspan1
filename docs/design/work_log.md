@@ -706,3 +706,25 @@ Conclusion: X4 `32x32 -> 128x128` is NOT validated yet. JTAG transfer and counte
    - comparison preview: `board_runs/full_span_jtag_smoke/compare_x4_32x32_banked_ram/validation_preview_x4_32x32.png`
 
 Conclusion: X4 `32x32 -> 128x128` board output now matches the fixed-point reference byte-for-byte. The color-channel order remains validated by the exact raw-byte comparison and by the generated Input / Reference / Board / Diff preview.
+
+### 2026-06-12 X2 32x32 banked RAM board validation - PASSED
+
+1. Regenerated the X2 `IMG_W=32` JTAG full SPAN bitstream with the banked RAM storage fix already in place.
+   - bitstream: `vivado/bitstreams/jfs_full_span_x2_32x32.bit`
+   - timing report: `vivado/reports/jtag_full_span_x2_32x32_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x2_32x32_utilization_impl.rpt`
+   - WNS: `14.254 ns`, WHS: `0.024 ns`; Vivado reports all user timing constraints met.
+   - resources: CLB LUTs `7697`, CLB Registers `3973`, Block RAM Tile `292`, DSPs `4`.
+   - synthesis: `0` errors, `0` critical warnings; no BRAM depth/cascade warning.
+2. Ran real PNG JTAG board validation with `external/SPAN/test_scripts/data/baboon.png` resized to `32x32`.
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_jtag_full_span_smoke.ps1 -Scale 2 -ImgW 32 -InputPng external\SPAN\test_scripts\data\baboon.png -OutputRaw board_runs\full_span_jtag_smoke\output_x2_32x32_banked_ram.rgb -OutputPng board_runs\full_span_jtag_smoke\baboon_x2_32x32_banked_ram_out.png`
+   - input counter: `1024`
+   - output counter: `4096`
+   - error flags: `0x00000000`
+   - output raw: `board_runs/full_span_jtag_smoke/output_x2_32x32_banked_ram.rgb` (`12288 bytes`)
+   - output png: `board_runs/full_span_jtag_smoke/baboon_x2_32x32_banked_ram_out.png`
+3. Fixed-point reference comparison passed byte-for-byte.
+   - result: `PASS compare_jtag_full_span_output_x2_32x32: 12288 bytes match`
+   - comparison preview: `board_runs/full_span_jtag_smoke/compare_x2_32x32_banked_ram/validation_preview_x2_32x32.png`
+
+Conclusion: X2 `32x32 -> 64x64` board output matches the fixed-point reference byte-for-byte. This gives matching, color-channel-checked board results for both X2 and X4 at `IMG_W=32` using the current official image.
