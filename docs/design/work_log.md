@@ -965,3 +965,25 @@ Conclusion: the project now has a concrete training path for the first practical
    - TinySPAN C16/B3 smoke student: `90.225 fps`, `7.423 ms/frame` inference
 
 Conclusion: GPU execution is already usable for realtime video experiments. The lightweight C16/B3 architecture has ample software speed; its quality is still smoke-level and needs full REDS/video-frame distillation before treating it as the final realtime model.
+
+### 2026-06-12 TinySPAN teacher-student video quality check
+
+1. Added a repeatable quality evaluation tool for realtime video SR checkpoints.
+   - script: `tools/evaluate_tinyspan_video_quality.py`
+   - note: `docs/design/tinyspan_teacher_student_quality_2026_06_12.md`
+   - compares a TinySPAN student against the official SPAN teacher on the same LR image, frame directory, or video input
+   - writes aggregate metrics, per-frame CSV, first-frame teacher/student/diff PNGs, and a five-panel comparison preview
+2. Ran a 30-frame X4 `320x180 -> 1280x720` smoke quality check using the current C16/B3 student.
+   - command: `python tools\evaluate_tinyspan_video_quality.py --scale 4 --student-checkpoint runs\tinyspan_distill\smoke_x4_c16_b3_baboon\student_last.pt --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 30 --fps 30 --motion --out-dir runs\tinyspan_quality\smoke_c16_b3_baboon_x4_320x180_30f --half --preview-tile 180 --diff-gain 8`
+   - student-vs-teacher mean PSNR: `29.942 dB`
+   - minimum PSNR: `29.469 dB`
+   - mean MAE: `0.020633`
+   - mean MSE: `0.00101630`
+   - max absolute channel error: `0.385742`
+   - teacher inference inside paired run: `32.060 ms/frame`
+   - student inference inside paired run: `8.224 ms/frame`
+   - metrics: `runs/tinyspan_quality/smoke_c16_b3_baboon_x4_320x180_30f/metrics.json`
+   - per-frame CSV: `runs/tinyspan_quality/smoke_c16_b3_baboon_x4_320x180_30f/frame_metrics.csv`
+   - preview: `runs/tinyspan_quality/smoke_c16_b3_baboon_x4_320x180_30f/baboon_tinyspan_teacher_quality_x4.png`
+
+Conclusion: the project now has a concrete quality gate for optimized realtime students. Future distilled checkpoints can be judged against the official SPAN teacher with the same video-frame command, while the separate stream benchmark continues to measure realtime FPS.

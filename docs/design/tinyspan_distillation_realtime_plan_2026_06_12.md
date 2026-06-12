@@ -117,3 +117,17 @@ Key result:
 - inference: `7.423 ms/frame`
 
 This confirms the lightweight architecture has ample realtime throughput. The remaining work is quality: run full REDS/video-frame distillation and compare against official SPAN teacher outputs.
+
+## Teacher-student quality gate
+
+Use `tools/evaluate_tinyspan_video_quality.py` after each student checkpoint to measure quality against the official SPAN teacher on the same LR video frames. The first smoke run is documented in `docs/design/tinyspan_teacher_student_quality_2026_06_12.md`.
+
+Smoke C16/B3 result on 30 generated `baboon.png` frames:
+
+- X4 `320x180 -> 1280x720`
+- mean student-vs-teacher PSNR: `29.942 dB`
+- mean MAE: `0.020633`
+- student inference in paired run: `8.224 ms/frame`
+- teacher inference in paired run: `32.060 ms/frame`
+
+The smoke model is fast but still visibly different in high-frequency texture. Full REDS/video-frame distillation should improve this quality baseline while preserving the realtime speed target.
