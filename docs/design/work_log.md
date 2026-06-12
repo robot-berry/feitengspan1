@@ -800,3 +800,30 @@ Conclusion: X4 `32x32 -> 128x128` still closes timing at `50 MHz`, with about `2
    - comparison image: `runs/span_gpu_realtime/baboon_video_smoke_x4_160_fp16/baboon_span_gpu_x4_comparison_x4.png`
 
 Conclusion: the CUDA prototype can run the current official SPAN X4 model at about realtime for `160x160 -> 640x640` frames on this GPU. This becomes the software quality/FPS reference while the FPGA implementation is redesigned from the current byte-exact sequential validation core into a parallel video datapath.
+
+### 2026-06-12 GPU 720p realtime benchmark - PARTIAL PASS
+
+1. Added practical CUDA inference optimization switches to `tools/run_span_gpu_realtime.py`.
+   - `--channels-last` for CUDA NHWC/channels-last tensors and model weights
+   - `--tf32` for FP32 CUDA TF32 kernels
+   - `--compile` for optional `torch.compile(..., mode="reduce-overhead")`
+   - cuDNN benchmark is enabled by the tool for repeated video-frame shapes.
+2. Ran a 720p software-demo target with official SPAN X4.
+   - command: `python tools\run_span_gpu_realtime.py --scale 4 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --out-dir runs\span_gpu_realtime\baboon_x4_320x180_fp16 --half --warmup 5 --repeat 15 --tile 240`
+   - LR input: `320x180`
+   - SR output: `1280x720`
+   - measured throughput: `38.394 fps`
+   - latency: `26.046 ms/frame`
+   - comparison image: `runs/span_gpu_realtime/baboon_x4_320x180_fp16/baboon_comparison_x4.png`
+3. Ran a 720p software-demo target with official SPAN X2.
+   - command: `python tools\run_span_gpu_realtime.py --scale 2 --input external\SPAN\test_scripts\data\baboon.png --width 640 --height 360 --out-dir runs\span_gpu_realtime\baboon_x2_640x360_fp16 --half --warmup 3 --repeat 8 --tile 240`
+   - LR input: `640x360`
+   - SR output: `1280x720`
+   - measured throughput: `26.526 fps`
+   - latency: `37.698 ms/frame`
+   - comparison image: `runs/span_gpu_realtime/baboon_x2_640x360_fp16/baboon_comparison_x2.png`
+4. Wrote benchmark note and summary CSV:
+   - note: `docs/design/video_gpu_720p_benchmark_2026_06_12.md`
+   - CSV: `runs/span_gpu_realtime/profile_summary_2026_06_12.csv`
+
+Conclusion: for a software video demonstration, the current best route is official SPAN X4 with `320x180` input to `1280x720` output, which clears the `30 fps` realtime target on the RTX 3060 Laptop GPU. X2 `640x360 -> 1280x720` is close but not yet realtime at 30 fps. The FPGA target is still not complete; these GPU measurements define the next hardware throughput and quality target.

@@ -19,7 +19,7 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import numpy as np
 import torch
-from PIL import Image, ImageDraw, ImageStat
+from PIL import Image, ImageDraw
 
 
 IMAGE_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"}
@@ -55,7 +55,20 @@ def resolve_checkpoint(manifest: dict, override: Path | None) -> Path:
     return repo_root() / ckpt
 
 
-def load_model(manifest: dict, checkpoint: Path, device: torch.device, half: bool) -> torch.nn.Module:
+def configure_torch(tf32: bool) -> None:
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch.backends, "cuda"):
+        torch.backends.cuda.matmul.allow_tf32 = tf32
+    torch.backends.cudnn.allow_tf32 = tf32
+
+
+def load_model(
+    manifest: dict,
+    checkpoint: Path,
+    device: torch.device,
+    half: bool,
+    channels_last: bool,
+) -> torch.nn.Module:
     SPAN = import_span()
     model = SPAN(
         3,
@@ -75,13 +88,19 @@ def load_model(manifest: dict, checkpoint: Path, device: torch.device, half: boo
     model.eval().to(device)
     if half:
         model.half()
+    if channels_last:
+        model.to(memory_format=torch.channels_last)
     return model
 
 
-def image_to_tensor(img: Image.Image, device: torch.device, half: bool) -> torch.Tensor:
+def image_to_tensor(img: Image.Image, device: torch.device, half: bool, channels_last: bool) -> torch.Tensor:
     arr = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
     tensor = torch.from_numpy(arr).permute(2, 0, 1).unsqueeze(0).to(device)
-    return tensor.half() if half else tensor
+    if half:
+        tensor = tensor.half()
+    if channels_last:
+        tensor = tensor.contiguous(memory_format=torch.channels_last)
+    return tensor
 
 
 def tensor_to_image(tensor: torch.Tensor) -> Image.Image:
@@ -212,11 +231,12 @@ def benchmark_frames(
     frames: list[Image.Image],
     device: torch.device,
     half: bool,
+    channels_last: bool,
     scale: int,
     warmup: int,
     repeat: int,
 ) -> tuple[list[Image.Image], float, float]:
-    tensors = [image_to_tensor(frame, device, half) for frame in frames]
+    tensors = [image_to_tensor(frame, device, half, channels_last) for frame in frames]
     if not tensors:
         raise SystemExit("no input frames found")
 
@@ -254,6 +274,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--device", default="cuda", choices=("auto", "cuda", "cpu"))
     parser.add_argument("--half", action="store_true", help="Use FP16 on CUDA.")
+    parser.add_argument("--channels-last", action="store_true", help="Use NHWC/channels-last tensors and model weights.")
+    parser.add_argument("--tf32", action="store_true", help="Allow TF32 kernels for FP32 CUDA inference.")
+    parser.add_argument("--compile", action="store_true", help="Try torch.compile(..., mode='reduce-overhead') before benchmarking.")
     parser.add_argument("--width", type=int, help="Resize low-resolution input width before inference.")
     parser.add_argument("--height", type=int, help="Resize low-resolution input height before inference.")
     parser.add_argument("--max-frames", type=int, default=60)
@@ -278,9 +301,21 @@ def main() -> None:
     if device.type == "cuda" and not torch.cuda.is_available():
         raise SystemExit("CUDA was requested but torch.cuda.is_available() is false")
     half = bool(args.half and device.type == "cuda")
+    channels_last = bool(args.channels_last and device.type == "cuda")
+    configure_torch(bool(args.tf32 and device.type == "cuda"))
 
     checkpoint = resolve_checkpoint(manifest, args.checkpoint)
-    model = load_model(manifest, checkpoint, device, half)
+    model = load_model(manifest, checkpoint, device, half, channels_last)
+    compile_status = "disabled"
+    if args.compile:
+        if not hasattr(torch, "compile"):
+            compile_status = "unavailable"
+        else:
+            try:
+                model = torch.compile(model, mode="reduce-overhead")
+                compile_status = "enabled"
+            except Exception as exc:
+                compile_status = f"failed: {exc}"
 
     out_dir = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -296,7 +331,7 @@ def main() -> None:
 
     lr_frames = [resize_lr(frame, args.width, args.height) for frame in raw_frames]
     sr_frames, fps, latency_ms = benchmark_frames(
-        model, lr_frames, device, half, scale, args.warmup, max(args.repeat, 1)
+        model, lr_frames, device, half, channels_last, scale, args.warmup, max(args.repeat, 1)
     )
     bicubic_frames = [
         frame.resize((frame.width * scale, frame.height * scale), Image.Resampling.BICUBIC) for frame in lr_frames
@@ -321,6 +356,9 @@ def main() -> None:
         "source_video_fps": source_video_fps,
         "device": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
         "dtype": "fp16" if half else "fp32",
+        "channels_last": channels_last,
+        "tf32": bool(args.tf32 and device.type == "cuda"),
+        "torch_compile": compile_status,
         "fps": fps,
         "latency_ms": latency_ms,
         "span_vs_bicubic_mse_first_frame": mse(sr_frames[0], bicubic_frames[0]),

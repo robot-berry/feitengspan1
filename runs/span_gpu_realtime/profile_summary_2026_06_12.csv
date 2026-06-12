@@ -1,0 +1,5 @@
+profile,scale,input_width,input_height,output_width,output_height,dtype,channels_last,fps,latency_ms,metrics,comparison
+baboon_x4_160_fp16,4,160,160,640,640,fp16,false,52.059283029399204,19.208869999905193,runs/span_gpu_realtime/baboon_x4_160_fp16/metrics.json,runs/span_gpu_realtime/baboon_x4_160_fp16/baboon_comparison_x4.png
+baboon_x4_160_fp16_cl,4,160,160,640,640,fp16,true,49.935283872355654,20.02591999989818,runs/span_gpu_realtime/baboon_x4_160_fp16_cl/metrics.json,runs/span_gpu_realtime/baboon_x4_160_fp16_cl/baboon_comparison_x4.png
+baboon_x4_320x180_fp16,4,320,180,1280,720,fp16,false,38.39353268559006,26.04605333375124,runs/span_gpu_realtime/baboon_x4_320x180_fp16/metrics.json,runs/span_gpu_realtime/baboon_x4_320x180_fp16/baboon_comparison_x4.png
+baboon_x2_640x360_fp16,2,640,360,1280,720,fp16,false,26.52641268106856,37.69827499945677,runs/span_gpu_realtime/baboon_x2_640x360_fp16/metrics.json,runs/span_gpu_realtime/baboon_x2_640x360_fp16/baboon_comparison_x2.png

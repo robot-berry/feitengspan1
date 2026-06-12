@@ -24,6 +24,9 @@ It supports:
 - video input through OpenCV
 - CUDA or CPU device selection
 - FP16 CUDA inference with `--half`
+- CUDA channels-last memory format with `--channels-last`
+- TF32 allowance for FP32 CUDA inference with `--tf32`
+- optional `torch.compile(..., mode="reduce-overhead")` with `--compile`
 - output PNG frames, optional output MP4, `metrics.json`, and a side-by-side comparison PNG
 
 ## Command
@@ -72,3 +75,9 @@ Video input smoke:
 The GPU prototype can already run the current official SPAN X4 model around realtime for a `160x160 -> 640x640` frame size on this RTX 3060 Laptop GPU. This gives a practical software path for previewing video quality and collecting FPS baselines.
 
 This does not change the FPGA conclusion: the current byte-exact sequential RTL validation engine is far too slow for realtime video by clock frequency alone. The GPU run should be used as the quality and throughput reference while the FPGA datapath is redesigned toward a video-oriented parallel architecture.
+
+## 720p follow-up
+
+See `docs/design/video_gpu_720p_benchmark_2026_06_12.md`.
+
+Key result: official SPAN X4 `320x180 -> 1280x720` reaches `38.394 fps` on the RTX 3060 Laptop GPU, so it is the best current route for a 720p30 software video demo. Official SPAN X2 `640x360 -> 1280x720` reaches `26.526 fps`, which is close but still below the 30 fps target.

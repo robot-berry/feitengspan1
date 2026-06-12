@@ -1,0 +1,20 @@
+{
+  "input": "external\\SPAN\\test_scripts\\data\\baboon.png",
+  "manifest": "G:\\UESTC\\feitengspan1\\rtl\\generated\\official_span_x4\\official_span_manifest.json",
+  "checkpoint": "G:\\UESTC\\feitengspan1\\runs\\official_span\\official_SPAN_REDS_x4_f48\\models\\net_g_latest.pth",
+  "scale": 4,
+  "frames": 1,
+  "input_width": 320,
+  "input_height": 180,
+  "output_width": 1280,
+  "output_height": 720,
+  "source_video_fps": 0.0,
+  "device": "NVIDIA GeForce RTX 3060 Laptop GPU",
+  "dtype": "fp16",
+  "channels_last": false,
+  "tf32": false,
+  "torch_compile": "disabled",
+  "fps": 38.39353268559006,
+  "latency_ms": 26.04605333375124,
+  "span_vs_bicubic_mse_first_frame": 75.56138610839844
+}
