@@ -987,3 +987,36 @@ Conclusion: GPU execution is already usable for realtime video experiments. The 
    - preview: `runs/tinyspan_quality/smoke_c16_b3_baboon_x4_320x180_30f/baboon_tinyspan_teacher_quality_x4.png`
 
 Conclusion: the project now has a concrete quality gate for optimized realtime students. Future distilled checkpoints can be judged against the official SPAN teacher with the same video-frame command, while the separate stream benchmark continues to measure realtime FPS.
+
+### 2026-06-12 TinySPAN video-frame distillation
+
+1. Added a video-specific distillation script for realtime TinySPAN.
+   - script: `train/distill_tinyspan_video.py`
+   - config: `configs/distill_tinyspan_video_x4_c16_b3.json`
+   - note: `docs/design/tinyspan_video_distillation_2026_06_12.md`
+   - supports real frame directories and nested REDS-style sequence folders
+   - supports a single-image synthetic pan/zoom sequence for smoke tests
+2. Added temporal consistency training on adjacent frame pairs.
+   - distill loss: student-to-official-SPAN teacher
+   - HR loss: student-to-HR crop
+   - edge loss: student/teacher Sobel consistency
+   - temporal loss: `L1((student1 - student0), (teacher1 - teacher0))`
+3. Ran a 6-step smoke video distillation pass from the existing C16/B3 smoke checkpoint.
+   - command: `python train\distill_tinyspan_video.py --train-frames external\SPAN\test_scripts\data\baboon.png --scale 4 --channels 16 --num-blocks 3 --patch-size 128 --batch-size 1 --epochs 1 --max-steps 6 --synthetic-frames 12 --resume-student runs\tinyspan_distill\smoke_x4_c16_b3_baboon\student_last.pt --output runs\tinyspan_distill\video_smoke_x4_c16_b3_baboon --amp`
+   - final loss: `0.04101366`
+   - final distill loss: `0.02210080`
+   - final temporal loss: `0.03350976`
+   - final teacher PSNR vs HR patch: `23.455042 dB`
+   - final student PSNR vs HR patch: `22.748724 dB`
+   - checkpoint: `runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/student_last.pt`
+   - metrics: `runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/metrics.csv`
+   - preview: `runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/video_distill_preview.png`
+4. Re-ran the teacher-student quality gate on the video-distilled smoke checkpoint.
+   - command: `python tools\evaluate_tinyspan_video_quality.py --scale 4 --student-checkpoint runs\tinyspan_distill\video_smoke_x4_c16_b3_baboon\student_last.pt --student-channels 16 --student-blocks 3 --input external\SPAN\test_scripts\data\baboon.png --width 320 --height 180 --frames 30 --fps 30 --motion --out-dir runs\tinyspan_quality\video_smoke_c16_b3_baboon_x4_320x180_30f --half --preview-tile 180 --diff-gain 8`
+   - mean student-vs-teacher PSNR: `29.939 dB`
+   - mean MAE: `0.020711`
+   - student inference in paired run: `8.357 ms/frame`
+   - metrics: `runs/tinyspan_quality/video_smoke_c16_b3_baboon_x4_320x180_30f/metrics.json`
+   - preview: `runs/tinyspan_quality/video_smoke_c16_b3_baboon_x4_320x180_30f/baboon_tinyspan_teacher_quality_x4.png`
+
+Conclusion: the realtime path now has all three software loops: throughput measurement, teacher/student quality evaluation, and video-frame temporal distillation. The smoke run proves the mechanics; the next quality-moving step is a full REDS or extracted-video-frame distillation run.

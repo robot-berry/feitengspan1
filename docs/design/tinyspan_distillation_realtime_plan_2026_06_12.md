@@ -131,3 +131,23 @@ Smoke C16/B3 result on 30 generated `baboon.png` frames:
 - teacher inference in paired run: `32.060 ms/frame`
 
 The smoke model is fast but still visibly different in high-frequency texture. Full REDS/video-frame distillation should improve this quality baseline while preserving the realtime speed target.
+
+## Video-frame distillation
+
+Use `train/distill_tinyspan_video.py` after a single-frame student checkpoint is available. This script trains adjacent frame pairs and adds a temporal consistency term:
+
+```text
+L1((student1 - student0), (teacher1 - teacher0))
+```
+
+The first smoke run is documented in `docs/design/tinyspan_video_distillation_2026_06_12.md`.
+
+Smoke result:
+
+- started from `runs/tinyspan_distill/smoke_x4_c16_b3_baboon/student_last.pt`
+- generated 12 synthetic pan/zoom frames from `baboon.png`
+- trained 6 adjacent-frame pair steps
+- final temporal loss: `0.03350976`
+- post-train teacher quality check: `29.939 dB` mean PSNR, `0.020711` mean MAE
+
+This proves the video-specific training loop. A real quality improvement requires a full run on REDS or another extracted video-frame dataset.

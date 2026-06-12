@@ -1,0 +1,9 @@
+{
+  "smoke_command": "python train/distill_tinyspan_video.py --train-frames external/SPAN/test_scripts/data/baboon.png --scale 4 --channels 16 --num-blocks 3 --patch-size 128 --batch-size 1 --epochs 1 --max-steps 6 --synthetic-frames 12 --resume-student runs/tinyspan_distill/smoke_x4_c16_b3_baboon/student_last.pt --output runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon --amp",
+  "quality_check_command": "python tools/evaluate_tinyspan_video_quality.py --scale 4 --student-checkpoint runs/tinyspan_distill/video_smoke_x4_c16_b3_baboon/student_last.pt --student-channels 16 --student-blocks 3 --input external/SPAN/test_scripts/data/baboon.png --width 320 --height 180 --frames 30 --fps 30 --motion --out-dir runs/tinyspan_quality/video_smoke_c16_b3_baboon_x4_320x180_30f --half --preview-tile 180 --diff-gain 8",
+  "full_command_template": "python train/distill_tinyspan_video.py --train-frames G:/REDS/train_sharp --scale 4 --channels 16 --num-blocks 3 --patch-size 192 --batch-size 8 --epochs 50 --max-pairs 24000 --resume-student runs/tinyspan_distill/x4_c16_b3_reds/student_last.pt --output runs/tinyspan_distill/video_x4_c16_b3_reds_temporal --amp",
+  "teacher": "official SPAN X4 from rtl/generated/official_span_x4/official_span_manifest.json",
+  "student": "TinySPAN X4, channels=16, num_blocks=3",
+  "temporal_loss": "L1((student_frame1 - student_frame0), (teacher_frame1 - teacher_frame0))",
+  "hardware_target": "320x180 -> 1280x720 @30fps, 150MHz, 512 MAC lanes"
+}
