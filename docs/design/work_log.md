@@ -631,3 +631,24 @@ Conclusion: X2 `8x8 -> 16x16` board output matches the fixed-point reference byt
    - comparison preview: `board_runs/full_span_jtag_smoke/compare_x4_16x16/validation_preview_x4_16x16.png`
 
 Conclusion: X4 `16x16 -> 64x64` board output matches the fixed-point reference byte-for-byte and the required Input / Reference / Board / Diff comparison image was generated.
+
+### 2026-06-12 PixelShuffle-fixed X2 16x16 board validation
+
+1. Generated the fixed X2 `IMG_W=16` JTAG full SPAN bitstream.
+   - bitstream: `vivado/bitstreams/jfs_full_span_x2_16x16.bit`
+   - timing report: `vivado/reports/jtag_full_span_x2_16x16_timing_impl.rpt`
+   - utilization report: `vivado/reports/jtag_full_span_x2_16x16_utilization_impl.rpt`
+   - WNS: `13.150 ns`, WHS: `0.016 ns`; Vivado reports all user timing constraints met.
+   - resources: CLB LUTs `6728`, CLB Registers `3837`, Block RAM Tile `194.5`, DSPs `1`.
+2. Ran real PNG JTAG board validation with the current official image `external/SPAN/test_scripts/data/baboon.png` resized to `16x16`.
+   - command: `powershell -ExecutionPolicy Bypass -File scripts\run_jtag_full_span_smoke.ps1 -Scale 2 -ImgW 16 -InputPng external\SPAN\test_scripts\data\baboon.png -OutputPng board_runs\full_span_jtag_smoke\baboon_x2_16x16_pixelshuffle_fixed_out.png`
+   - input counter: `256`
+   - output counter: `1024`
+   - error flags: `0x00000000`
+   - output raw: `board_runs/full_span_jtag_smoke/output_x2_16x16.rgb` (`3072 bytes`)
+   - output png: `board_runs/full_span_jtag_smoke/baboon_x2_16x16_pixelshuffle_fixed_out.png`
+3. Fixed-point reference comparison passed byte-for-byte.
+   - result: `PASS compare_jtag_full_span_output_x2_16x16: 3072 bytes match`
+   - comparison preview: `board_runs/full_span_jtag_smoke/compare_x2_16x16/validation_preview_x2_16x16.png`
+
+Conclusion: X2 `16x16 -> 32x32` board output matches the fixed-point reference byte-for-byte and the required Input / Reference / Board / Diff comparison image was generated.
